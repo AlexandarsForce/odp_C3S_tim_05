@@ -44,3 +44,46 @@ CREATE TABLE IF NOT EXISTS posts
     FOREIGN KEY (author_id) REFERENCES users(user_id),
     FOREIGN KEY (community_id) REFERENCES communities(community_id)
 );
+
+CREATE TABLE IF NOT EXISTS comments
+(
+    comment_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    post_id      INT UNSIGNED NOT NULL,
+    author_id    INT UNSIGNED NOT NULL,
+    parent_id    INT UNSIGNED NULL,
+    content      VARCHAR(2000) NOT NULL,
+    deleted      TINYINT(1) DEFAULT 0,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id),
+    FOREIGN KEY (author_id) REFERENCES users(user_id),
+    FOREIGN KEY (parent_id) REFERENCES comments(comment_id)
+);
+
+CREATE TABLE IF NOT EXISTS tags
+(
+    tag_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name     VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS community_members
+(
+    user_id      INT UNSIGNED NOT NULL,
+    community_id INT UNSIGNED NOT NULL,
+    role         ENUM('member','moderator') NOT NULL DEFAULT 'member',
+    status       ENUM('active','pending','banned') NOT NULL DEFAULT 'pending',
+    joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, community_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (community_id) REFERENCES communities(community_id) 
+);
+
+CREATE TABLE IF NOT EXISTS post_likes
+(
+    user_id     INT UNSIGNED NOT NULL,
+    post_id     INT UNSIGNED NOT NULL,
+    liked       TINYINT(1) SIGNED DEFAULT 0,
+    liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id)
+);
