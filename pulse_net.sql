@@ -87,3 +87,23 @@ CREATE TABLE IF NOT EXISTS post_likes
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (post_id) REFERENCES posts(post_id)
 );
+
+CREATE TABLE IF NOT EXISTS comment_likes
+(
+    user_id     INT UNSIGNED NOT NULL,
+    comment_id  INT UNSIGNED NOT NULL,
+    liked       TINYINT(1) SIGNED DEFAULT 0,
+    liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, comment_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (comment_id) REFERENCES comments(comment_id)
+);
+
+CREATE TABLE IF NOT EXISTS post_tags
+(
+    post_id     INT UNSIGNED NOT NULL,
+    tag_id      INT UNSIGNED NOT NULL,
+    PRIMARY KEY (post_id, tag_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id),
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
+);
