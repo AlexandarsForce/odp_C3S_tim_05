@@ -107,3 +107,25 @@ CREATE TABLE IF NOT EXISTS post_tags
     FOREIGN KEY (post_id) REFERENCES posts(post_id),
     FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
 );
+
+CREATE TABLE IF NOT EXISTS user_follows
+(
+    follower_id     INT UNSIGNED NOT NULL,
+    following_id    INT UNSIGNED NOT NULL,
+    followed_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(user_id),
+    FOREIGN KEY (following_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS audits (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NULL,
+    action      VARCHAR(255) NOT NULL,
+    details     TEXT,
+    ip_address  VARCHAR(45),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_user (user_id),
+    INDEX idx_created (created_at)
+);
