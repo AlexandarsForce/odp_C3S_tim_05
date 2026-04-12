@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS users
     profile_picture TEXT NULL,
     role            ENUM('user','admin') NOT NULL DEFAULT 'user',
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    INDEX idx_username (username)
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
     INDEX idx_email (email)
 );
 
@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS communities
     type           ENUM('public','private') NOT NULL DEFAULT 'private',
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(user_id)
+    FOREIGN KEY (owner_id) REFERENCES users(user_id),
+    INDEX idx_name (name)
 );
 
 CREATE TABLE IF NOT EXISTS posts
@@ -42,7 +43,7 @@ CREATE TABLE IF NOT EXISTS posts
     deleted          TINYINT(1) DEFAULT 0,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (author_id) REFERENCES users(user_id),
-    FOREIGN KEY (community_id) REFERENCES communities(community_id)
+    FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS comments
@@ -54,7 +55,7 @@ CREATE TABLE IF NOT EXISTS comments
     content      VARCHAR(2000) NOT NULL,
     deleted      TINYINT(1) DEFAULT 0,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (post_id) REFERENCES posts(post_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES users(user_id),
     FOREIGN KEY (parent_id) REFERENCES comments(comment_id)
 );
@@ -74,7 +75,7 @@ CREATE TABLE IF NOT EXISTS community_members
     joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, community_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (community_id) REFERENCES communities(community_id) 
+    FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS post_likes
@@ -85,7 +86,7 @@ CREATE TABLE IF NOT EXISTS post_likes
     liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, post_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (post_id) REFERENCES posts(post_id)
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS comment_likes
@@ -96,7 +97,7 @@ CREATE TABLE IF NOT EXISTS comment_likes
     liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, comment_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (comment_id) REFERENCES comments(comment_id)
+    FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS post_tags
@@ -104,7 +105,7 @@ CREATE TABLE IF NOT EXISTS post_tags
     post_id     INT UNSIGNED NOT NULL,
     tag_id      INT UNSIGNED NOT NULL,
     PRIMARY KEY (post_id, tag_id),
-    FOREIGN KEY (post_id) REFERENCES posts(post_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
 );
 
