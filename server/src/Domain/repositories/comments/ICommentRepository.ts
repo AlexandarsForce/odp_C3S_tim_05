@@ -6,11 +6,11 @@ export interface ICommentRepository {
   addCommentLike(commentId: number, like: CommentLike): Promise<boolean>;
 
   findCommentById(commentId: number): Promise<Comment>;
-  findCommentsByPostId(postId: number): Promise<Comment[]>;
-  findCommentsByAuthorId(authorId: number): Promise<Comment[]>;
-  findCommentsByParentId(parentId: number): Promise<Comment[]>;
-  findCommentLikesByCommentId(commentId: number): Promise<CommentLike[]>;
-  findCommentLikesByUserId(userId: number): Promise<CommentLike[]>;
+  findCommentsByPostId(postId: number): Promise<{ comments: Comment[], totalAmount: number }>;
+  findCommentsByAuthorId(authorId: number): Promise<{ comments: Comment[], totalAmount: number }>;
+  findCommentsByParentId(parentId: number): Promise<{ comments: Comment[], totalAmount: number }>;
+  findCommentLikesByCommentId(commentId: number): Promise<{ likes: CommentLike[], totalAmount: number }>;
+  findCommentLikesByUserId(userId: number): Promise<{ likes: CommentLike[], totalAmount: number }>;
 
   updateComment(commentId: number, comment: Comment): Promise<boolean>;
   updateCommentLike(commentId: number, like: CommentLike): Promise<boolean>;

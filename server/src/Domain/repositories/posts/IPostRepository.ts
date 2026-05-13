@@ -8,12 +8,12 @@ export interface IPostRepository {
   addPostTag(postId: number, tag: PostTag): Promise<boolean>;
 
   findPostById(postId: number): Promise<Post>;
-  findPostsByCommunityId(communityId: number): Promise<Post[]>;
-  findPostsByAuthorId(authorId: number): Promise<Post[]>;
-  findPostLikesByPostId(postId: number): Promise<PostLike[]>;
-  findPostsByTagId(tagId: number): Promise<Post[]>;
-  findPostsByTagName(tagName: string): Promise<Post[]>;
-  findPostTagsByPostId(postId: number): Promise<PostTag[]>;
+  findPostsByCommunityId(communityId: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByAuthorId(authorId: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostLikesByPostId(postId: number): Promise<{ likes: PostLike[], totalAmount: number }>;
+  findPostsByTagId(tagId: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByTagName(tagName: string): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostTagsByPostId(postId: number): Promise<{ tags: PostTag[], totalAmount: number }>;
 
   updatePost(postId: number, post: Post): Promise<boolean>;
   updatePostLike(postId: number, like: PostLike): Promise<boolean>;

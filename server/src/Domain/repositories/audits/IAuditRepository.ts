@@ -1,5 +1,5 @@
 import { Audit } from "../../models/Audit";
-import { AuditDto } from "../../DTOs/audit/AuditDTO";
+import { AuditDto } from "../../DTOs/audit/AuditDto";
 import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
 
 export interface IAuditRepository {

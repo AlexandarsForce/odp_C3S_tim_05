@@ -9,8 +9,8 @@ export interface IUserRepository {
   findByUsername(username: string): Promise<User>;
   findByEmail(email: string): Promise<User>;
   findAll(): Promise<User[]>;
-  findAllFollowers(userId: number): Promise<UserFollower[]>;
-  findAllFollowing(userId: number): Promise<UserFollower[]>;
+  findAllFollowers(userId: number): Promise<{ followers: UserFollower[], totalAmount: number }>;
+  findAllFollowing(userId: number): Promise<{ following: UserFollower[], totalAmount: number }>;
 
   update(user: User): Promise<boolean>;
 
