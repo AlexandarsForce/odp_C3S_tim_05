@@ -119,7 +119,7 @@ export class PostRepository implements IPostRepository {
         if (!resReadTags) return { posts: [], totalAmount: 0 };
         let postIds: number[] = [];
         try {
-            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT ppost_id FROM post_tags WHERE tag_name = ?`, [tagName]);
+            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_name = ?`, [tagName]);
             postIds = rows.map(r => r.post_id);
             if (postIds.length === 0) return { posts: [], totalAmount: 0 };
         }
