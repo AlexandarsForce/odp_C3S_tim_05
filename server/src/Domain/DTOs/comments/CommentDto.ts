@@ -5,7 +5,7 @@ export class CommentDto{
         public authorId: number = 0,
         public parentId: number | null = null,
         public content: string = "",
-        public deleted: number = 0,
+        public deleted: boolean = false,
         public createdAt: Date = new Date(),
     ) {}
 }
