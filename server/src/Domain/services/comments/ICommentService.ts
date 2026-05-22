@@ -8,7 +8,7 @@ export interface ICommentService {
 
     getPostComments(postId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>>;
 
-    updateComment(userId: number, comment: UpdateCommentDto): Promise<boolean>;
+    updateComment(userId: number, commentId: number, comment: UpdateCommentDto): Promise<boolean>;
 
     deleteComment(userId: number, commentId: number): Promise<boolean>;
 }
