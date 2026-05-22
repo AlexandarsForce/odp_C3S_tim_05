@@ -19,9 +19,9 @@ private mapPostLike(r: RowDataPacket): PostLike {
     );
   }
 
-  async addPostLike(postId: number, like: PostLike): Promise<boolean> {
+  async addPostLike(postId: number, like: PostLike): Promise<PostLike> {
     const res = await this.db.getWriteConnection();
-    if (!res) return false;
+    if (!res) return new PostLike(0, 0, 0, new Date());
 
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
@@ -35,11 +35,13 @@ private mapPostLike(r: RowDataPacket): PostLike {
         ]
       );
 
-      return result.affectedRows > 0;
+      if (result.affectedRows === 0) return new PostLike(0, 0, 0, new Date());
+
+      return like;
     }
     catch (err) {
       this.logger.error("PostLikeRepository", "addPostLike failed", err);
-      return false;
+      return new PostLike(0, 0, 0, new Date());
     }
     finally {
       res.conn.release();
@@ -71,6 +73,30 @@ private mapPostLike(r: RowDataPacket): PostLike {
         likes: [],
         totalAmount: 0
       };
+    }
+    finally {
+      res.conn.release();
+    }
+  }
+
+  async isLikedByUser(postId: number, userId: number): Promise<boolean> {
+    const res = await this.db.getReadConnection();
+    if (!res) return false;
+
+    try {
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT *
+         FROM post_likes
+         WHERE post_id = ?
+         AND user_id = ?`,
+        [postId, userId]
+      );
+
+      return rows.length > 0;
+    }
+    catch (err) {
+      this.logger.error("PostLikeRepository", "isLikedByUser failed", err);
+      return false;
     }
     finally {
       res.conn.release();
