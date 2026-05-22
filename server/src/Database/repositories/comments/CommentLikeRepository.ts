@@ -19,18 +19,18 @@ export class CommentLikeRepository implements ICommentLikeRepository {
     );
   }
 
-  async addCommentLike(commentId: number, like: CommentLike): Promise<boolean> {
+  async addCommentLike(commentId: number, like: CommentLike): Promise<CommentLike> {
     const res = await this.db.getWriteConnection();
-    if (!res) return false;
+    if (!res) return new CommentLike();
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
         `INSERT INTO comment_likes (user_id, comment_id, liked) VALUES (?, ?, ?)`,
         [like.userId, commentId, like.liked]
       );
-      return result.affectedRows > 0;
+      return new CommentLike(like.userId, commentId, like.liked, new Date());
     } catch (err) {
       this.logger.error("CommentLikeRepository", "addCommentLike failed", err);
-      return false;
+      return new CommentLike();
     } finally { 
       res.conn.release(); 
     }
@@ -71,6 +71,23 @@ export class CommentLikeRepository implements ICommentLikeRepository {
     } catch (err) {
       this.logger.error("CommentLikeRepository", "findCommentLikesByUserId failed", err);
       return { likes: [], totalAmount: 0 };
+    } finally { 
+      res.conn.release(); 
+    }
+  }
+
+  async isLikedByUser(commentId: number, userId: number): Promise<boolean> {
+    const res = await this.db.getReadConnection();
+    if (!res) return false;
+    try {
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM comment_likes WHERE comment_id = ? AND user_id = ?`,
+        [commentId, userId]
+      );
+      return rows[0].count > 0;
+    } catch (err) {
+      this.logger.error("CommentLikeRepository", "isLikedByUser failed", err);
+      return false;
     } finally { 
       res.conn.release(); 
     }
