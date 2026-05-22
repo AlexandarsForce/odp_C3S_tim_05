@@ -10,5 +10,7 @@ export interface ICommunityMemberRepository {
   findCommunityMemberByStatus(communityId: number, status: CommunityMemberStatus): Promise<{ members: CommunityMember[], totalAmount: number }>;
   findAllCommunityMembers(communityId: number): Promise<{ members: CommunityMember[], totalAmount: number }>;
   
+  updateCommunityMember(communityId: number, member: CommunityMember): Promise<boolean>;
+
   removeCommunityMember(communityId: number, memberId: number): Promise<boolean>;
 }

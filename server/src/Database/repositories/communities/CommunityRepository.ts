@@ -136,6 +136,23 @@ export class CommunityRepository implements ICommunityRepository {
     finally { resReadCommunities.conn.release(); }
   }
 
+  async findAllCommunities(): Promise<{ communities: Community[]; totalAmount: number; }> {
+    const res = await this.db.getReadConnection();
+    if (!res) return { communities: [], totalAmount: 0 };
+    try {
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC`);
+      return {
+        communities: rows.map((row) => this.mapCommunity(row)),
+        totalAmount: rows.length
+      };
+    }
+    catch (err) {
+      this.logger.error("CommunityRepository", "findAllCommunities failed", err);
+      return { communities: [], totalAmount: 0 };
+    }
+    finally { res.conn.release(); }
+  }
+
   async updateCommunity(communityId: number, community: Community): Promise<boolean> {
     const res = await this.db.getWriteConnection();
     if (!res) return false;

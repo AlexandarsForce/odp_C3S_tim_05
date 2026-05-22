@@ -6,7 +6,7 @@ export class CommunityMemberDto {
         public userId: number = 0,
         public communityId: number = 0,
         public role: CommunityMemberRole = CommunityMemberRole.MEMBER,
-        public status: CommunityMemberStatus = CommunityMemberStatus.PENDING,
+        public status: CommunityMemberStatus = CommunityMemberStatus.ACTIVE,
         public joinedAt: Date = new Date(),
     ) {}
 }

@@ -42,8 +42,8 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
     
         try {
             const [result] = await resWrite.conn.execute<ResultSetHeader>(
-                `INSERT INTO community_members (user_id, community_id, role, status) VALUES (?, ?, ?, ?)`,
-                [findUserId, communityId, member.role, member.status]
+                `INSERT INTO community_members (user_id, community_id, role, status, joined_at) VALUES (?, ?, ?, ?, ?)`,
+                [findUserId, communityId, member.role, member.status, member.joinedAt]
             );
             return true;
         }
@@ -115,6 +115,23 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         catch (err) {
         this.logger.error("CommunityMemberRepository", "findAllCommunityMembers failed", err);
         return { members: [], totalAmount: 0 };
+        }
+        finally { res.conn.release(); }
+    }
+
+    async updateCommunityMember(communityId: number, member: CommunityMember): Promise<boolean> {
+        const res = await this.db.getWriteConnection();
+        if (!res) return false;
+        try {
+            const [result] = await res.conn.execute<ResultSetHeader>(
+                `UPDATE community_members SET role = ?, status = ?, joined_at = ? WHERE community_id = ? AND user_id = ?`,
+                [member.role, member.status, member.joinedAt, communityId, member.userId]
+            );
+            return result.affectedRows > 0;
+        }
+        catch (err) {
+            this.logger.error("CommunityMemberRepository", "updateCommunityMember failed", err);
+            return false;
         }
         finally { res.conn.release(); }
     }

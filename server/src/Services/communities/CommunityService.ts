@@ -42,35 +42,35 @@ export class CommunityService implements ICommunityService {
         return this.toDto(community);
     }
 
-    async getAllCommunities(page: number, limit: number): Promise<PaginatedListDto<CommunityDto>> {
-        const { communities, total } = await this.communityRepository.findAllCommunities(page, limit);
-        return new PaginatedListDto(communities.map((c) => this.toDto(c)), total, page, limit);
+    async getAllCommunities( page: number, limit: number, isAdmin: boolean): Promise<PaginatedListDto<CommunityDto>> {
+        if(isAdmin) {
+            const { communities, totalAmount } = await this.communityRepository.findAllCommunities();
+            return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
+        }
+        return new PaginatedListDto<CommunityDto>();
     }
 
     async getPublicCommunities(page: number, limit: number): Promise<PaginatedListDto<CommunityDto>> {
-        const { communities, total } = await this.communityRepository.findCommunityByType(CommunityType.PUBLIC, page, limit);
-        return new PaginatedListDto(communities.map((c) => this.toDto(c)), total, page, limit);
+        const { communities, totalAmount } = await this.communityRepository.findCommunityByType(CommunityType.PUBLIC);
+        return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
     }
 
     async getCommunityByMemberId(memberId: number, page: number, limit: number): Promise<PaginatedListDto<CommunityDto>> {
-        const { communities, total } = await this.communityRepository.findCommunitiesByMemberId(memberId, page, limit);
-        return new PaginatedListDto(communities.map((c) => this.toDto(c)), total, page, limit);
+        const { communities, totalAmount } = await this.communityRepository.findCommunityByMemberId(memberId);
+        return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
     }
 
     async updateCommunity(userId: number, communityId: number, updateCommunityDto: UpdateCommunityDto): Promise<boolean> {
-        const community = await this.communityRepository.findCommunityById(communityId);
-        if (community.id === 0 || community.ownerId !== userId) return false;
         const updated = new Community(communityId, userId, updateCommunityDto.name, updateCommunityDto.description, updateCommunityDto.rules, updateCommunityDto.avatarPicture, updateCommunityDto.type);
         const success = await this.communityRepository.updateCommunity(communityId, updated);
         if (success) await this.auditService.log({ userId, action: "COMMUNITY_UPDATED", details: "communities"});
         return success;
     }
 
-    async deleteCommunity(userId: number, communityId: number): Promise<void> {
-        const community = await this.communityRepository.findCommunityById(communityId);
-        if (community.id === 0 || community.ownerId !== userId) return;
-        await this.communityRepository.deleteCommunity(communityId);
-        await this.auditService.log({ userId, action: "COMMUNITY_DELETED", details: "communities"});
+    async deleteCommunity(userId: number, communityId: number): Promise<boolean> {
+        const success = await this.communityRepository.deleteCommunity(communityId);
+        if (success) await this.auditService.log({ userId, action: "COMMUNITY_DELETED", details: "communities"});
+        return success;
     }
 
 }

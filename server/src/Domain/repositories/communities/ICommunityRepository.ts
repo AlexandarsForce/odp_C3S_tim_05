@@ -9,6 +9,7 @@ export interface ICommunityRepository {
   findCommunityByType(type: CommunityType): Promise<{ communities: Community[], totalAmount: number }>;
   findCommunityByOwnerId(ownerId: number): Promise<{ communities: Community[], totalAmount: number }>;
   findCommunityByMemberId(memberId: number): Promise<{ communities: Community[], totalAmount: number }>;
+  findAllCommunities(): Promise<{ communities: Community[], totalAmount: number }>;
 
   updateCommunity(communityId: number, community: Community): Promise<boolean>;
 
