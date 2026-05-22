@@ -17,9 +17,9 @@ export class PostTagRepository implements IPostTagRepository {
     );
   }
 
-  async addPostTag(postId: number, tag: PostTag): Promise<boolean> {
+  async addPostTag(postId: number, tag: PostTag): Promise<PostTag> {
     const res = await this.db.getWriteConnection();
-    if (!res) return false;
+    if (!res) return new PostTag();
 
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
@@ -31,11 +31,11 @@ export class PostTagRepository implements IPostTagRepository {
         ]
       );
 
-      return result.affectedRows > 0;
+      return result.affectedRows > 0 ? new PostTag(postId, tag.tagId) : new PostTag();
     }
     catch (err) {
       this.logger.error("PostTagRepository", "addPostTag failed", err);
-      return false;
+      return new PostTag();
     }
     finally {
       res.conn.release();
