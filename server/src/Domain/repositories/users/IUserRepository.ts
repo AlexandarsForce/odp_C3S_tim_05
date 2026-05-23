@@ -9,7 +9,7 @@ export interface IUserRepository {
   findAll(): Promise<User[]>;
 
   update(user: User): Promise<boolean>;
+  exists(id: number): Promise<boolean>;
 
-  delete(id: number): Promise<boolean>;
   deactivate(id: number): Promise<boolean>;
 }
