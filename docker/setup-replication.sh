@@ -15,7 +15,7 @@ REPL_USER="replicator"
 REPL_PASS="repl1234"
 
 # TODO: Replace "project_db" with your actual database name
-DB_NAME="project_db"
+DB_NAME="pulse_net"
 
 M="mysql  -h127.0.0.1    -P3306 -uroot -p${ROOT_PASS} --protocol=TCP --connect-timeout=5"
 S1="mysql -hmysql-slave1 -P3306 -uroot -p${ROOT_PASS} --protocol=TCP --connect-timeout=5"
@@ -58,25 +58,135 @@ $M -e "CREATE DATABASE ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_
 
 # TODO: Replace the SQL below with your actual table definitions
 $M ${DB_NAME} << 'SQL'
-CREATE TABLE users (
-  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  username     VARCHAR(40)  NOT NULL UNIQUE,
-  email        VARCHAR(120) NOT NULL UNIQUE,
-  passwordHash VARCHAR(255) NOT NULL,
-  role         ENUM('user','admin') DEFAULT 'user',
-  isActive     TINYINT(1)   DEFAULT 1,
-  createdAt    DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updatedAt    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+CREATE TABLE IF NOT EXISTS users 
+(
+    user_id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username        VARCHAR(40)  NOT NULL UNIQUE,
+    full_name       VARCHAR(150) NOT NULL,
+    email           VARCHAR(150) NOT NULL UNIQUE,
+    password        VARCHAR(300) NOT NULL,
+    bio             VARCHAR(300) NULL,
+    profile_picture TEXT NULL,
+    role            ENUM('user','admin') NOT NULL DEFAULT 'user',
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_email (email)
 );
 
--- TODO: Replace "entities" with your domain table and its columns
-CREATE TABLE entities (
-  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  userId      INT UNSIGNED NOT NULL,
-  status      ENUM('pending','active','completed','cancelled') DEFAULT 'pending',
-  createdAt   DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updatedAt   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (userId) REFERENCES users(id)
+CREATE TABLE IF NOT EXISTS communities
+(
+    community_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    owner_id       INT UNSIGNED NOT NULL,
+    name           VARCHAR(80) NOT NULL UNIQUE,
+    description    VARCHAR(500) NULL,
+    rules          VARCHAR(200) NULL,
+    avatar_picture TEXT NULL,
+    type           ENUM('public','private') NOT NULL DEFAULT 'private',
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(user_id),
+    INDEX idx_name (name)
+);
+
+CREATE TABLE IF NOT EXISTS posts
+(
+    post_id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    author_id        INT UNSIGNED NOT NULL,
+    community_id     INT UNSIGNED NOT NULL,
+    title            VARCHAR(200) NOT NULL,
+    content          VARCHAR(10000) NOT NULL,
+    media_attachment TEXT NULL,
+    deleted          TINYINT(1) DEFAULT 0,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(user_id),
+    FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS comments
+(
+    comment_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    post_id      INT UNSIGNED NOT NULL,
+    author_id    INT UNSIGNED NOT NULL,
+    parent_id    INT UNSIGNED NULL,
+    content      VARCHAR(2000) NOT NULL,
+    deleted      TINYINT(1) DEFAULT 0,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES users(user_id),
+    FOREIGN KEY (parent_id) REFERENCES comments(comment_id)
+);
+
+CREATE TABLE IF NOT EXISTS tags
+(
+    tag_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name     VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS community_members
+(
+    user_id      INT UNSIGNED NOT NULL,
+    community_id INT UNSIGNED NOT NULL,
+    role         ENUM('member','moderator') NOT NULL DEFAULT 'member',
+    status       ENUM('active','pending','banned') NOT NULL DEFAULT 'pending',
+    joined_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, community_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (community_id) REFERENCES communities(community_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS post_likes
+(
+    user_id     INT UNSIGNED NOT NULL,
+    post_id     INT UNSIGNED NOT NULL,
+    liked       TINYINT(1) SIGNED DEFAULT 0,
+    liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, post_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS comment_likes
+(
+    user_id     INT UNSIGNED NOT NULL,
+    comment_id  INT UNSIGNED NOT NULL,
+    liked       TINYINT(1) SIGNED DEFAULT 0,
+    liked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, comment_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS post_tags
+(
+    post_id     INT UNSIGNED NOT NULL,
+    tag_id      INT UNSIGNED NOT NULL,
+    PRIMARY KEY (post_id, tag_id),
+    FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_follows
+(
+    follower_id     INT UNSIGNED NOT NULL,
+    following_id    INT UNSIGNED NOT NULL,
+    followed_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id),
+    FOREIGN KEY (follower_id) REFERENCES users(user_id),
+    FOREIGN KEY (following_id) REFERENCES users(user_id)
+);
+
+CREATE TABLE IF NOT EXISTS audits (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NULL,
+    action      VARCHAR(255) NOT NULL,
+    details     TEXT,
+    ip_address  VARCHAR(45),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_user (user_id),
+    INDEX idx_created (created_at)
 );
 SQL
 
