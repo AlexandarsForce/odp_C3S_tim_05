@@ -9,6 +9,7 @@ import { CreateCommunityDto } from "../../Domain/DTOs/communities/CreateCommunit
 import { UpdateCommunityDto } from "../../Domain/DTOs/communities/UpdateCommunityDto";
 import { UpdateCommunityMemberRoleDto } from '../../Domain/DTOs/communities/UpdateCommunityMemberRoleDto';
 import { ResponseCommunityDto } from '../../Domain/DTOs/communities/ResponseCommunityDto';
+import { validateCreateCommunity, validateUpdateCommunity } from '../validators/communities/ValidateCommunity';
 
 export class CommunityController {
   private readonly router = Router()
@@ -57,6 +58,11 @@ export class CommunityController {
 
     private async createCommunity(req: Request, res: Response): Promise<void> {
         const { ownerId, name, description, rules, avatarPicture,type} = req.body as CreateCommunityDto;
+        const validationResult = validateCreateCommunity(new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
+        if (!validationResult.valid) {
+            res.status(400).json({ success: false, message: validationResult.message });
+            return;
+        }
         const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
         res.status(201).json({ success: true, data: community });
     }
@@ -76,6 +82,11 @@ export class CommunityController {
         const id = parseInt(req.params.id as string, 10);
         const { name, description, rules, avatarPicture,type } = req.body as UpdateCommunityDto;
         if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const validationResult = validateUpdateCommunity(new UpdateCommunityDto(name, description, rules, avatarPicture,type));
+        if (!validationResult.valid) {
+            res.status(400).json({ success: false, message: validationResult.message });
+            return;
+        }
         const ok = await this.communityService.updateCommunity(req.user!.id, id, new UpdateCommunityDto(name, description, rules, avatarPicture,type));
         if (!ok) { res.status(404).json({ success: false, message: "Community not found or unauthorized" }); return; }
         res.status(200).json({ success: true, message: "Community updated" });
