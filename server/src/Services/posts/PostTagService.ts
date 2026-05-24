@@ -29,7 +29,7 @@ export class PostTagService implements IPostTagService {
         return new PaginatedListDto(tags.map((t) => this.toDto(t)), totalAmount, page, limit);
     }
 
-    async removeTag(userId: number, tagId: number): Promise<boolean> {
+    async removePostTag(userId: number, postId: number, tagId: number): Promise<boolean> {
         const success = await this.postTagRepository.deletePostTag(0, tagId);
         if (success) await this.auditService.log({ userId, action: "POST_TAG_REMOVED", details: "posts"});
         return success;

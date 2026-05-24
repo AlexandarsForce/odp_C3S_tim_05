@@ -7,5 +7,5 @@ export interface IPostTagService {
 
     getPostTags(userId: number, postId: number, page: number, limit: number): Promise<PaginatedListDto<PostTagDto>>;
 
-    removeTag(userId: number, tagId: number): Promise<boolean>;
+    removePostTag(userId: number, postId: number, tagId: number): Promise<boolean>;
 }
