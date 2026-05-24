@@ -9,6 +9,7 @@ import { CreatePostDto } from "../../Domain/DTOs/posts/CreatePostDto";
 import { CreatePostTagDto } from "../../Domain/DTOs/posts/CreatePostTagDto";
 import { CreatePostLikeDto } from "../../Domain/DTOs/posts/CreatePostLikeDto";
 import { UpdatePostDto } from "../../Domain/DTOs/posts/UpdatePostDto";
+import { validateCreatePost, validateUpdatePost } from "../validators/posts/ValidatePost";
 
 export class PostController {
     private readonly router = Router();
@@ -28,7 +29,7 @@ export class PostController {
 
         this.router.post("/posts/:id/like", authenticate, this.likePost.bind(this));
         this.router.delete("/posts/:id/like", authenticate, this.unlikePost.bind(this));
-        
+
         this.router.post("/posts/:id/tags", authenticate, this.addPostTag.bind(this));
         this.router.delete("/posts/:id/tags/:tagId", authenticate, this.removePostTag.bind(this));
     }
@@ -52,6 +53,11 @@ export class PostController {
 
     private async createPost(req: Request, res: Response): Promise<void> {
         const { authorId,communityId, title, content, mediaAttachment } = req.body as CreatePostDto;
+        const validationResult = validateCreatePost(new CreatePostDto(authorId,communityId, title, content, mediaAttachment));
+        if (!validationResult.valid) {
+            res.status(400).json({ success: false, message: validationResult.message });
+            return;
+        }
         const post = await this.postService.createPost(req.user!.id, new CreatePostDto(authorId,communityId, title, content, mediaAttachment));
         res.status(201).json({ success: true, data: post });
     }
@@ -69,6 +75,11 @@ export class PostController {
     private async updatePost(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
         const { authorId, communityId, title, content, mediaAttachment } = req.body as UpdatePostDto;
+        const validationResult = validateUpdatePost(new UpdatePostDto(authorId, communityId, title, content, mediaAttachment));
+        if (!validationResult.valid) {
+            res.status(400).json({ success: false, message: validationResult.message });
+            return;
+        }
         const success = await this.postService.updatePost(req.user!.id, postId, new UpdatePostDto(authorId, communityId, title, content, mediaAttachment));
         if (!success) {
             res.status(404).json({ success: false, message: "Post not found" });
