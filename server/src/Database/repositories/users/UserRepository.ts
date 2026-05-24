@@ -12,7 +12,7 @@ export class UserRepository implements IUserRepository {
   ) {}
 
   private map(r: RowDataPacket): User {
-    return new User(r.id, r.username, r.full_name, r.email, r.password, r.bio, r.profile_picture, r.role as UserRole, r.created_at, r.updated_at, 1);
+    return new User(r.user_id, r.username, r.full_name, r.email, r.password, r.bio, r.profile_picture, r.role as UserRole, r.created_at, r.updated_at, 1);
   }
 
   async create(user: User): Promise<User> {
@@ -35,7 +35,7 @@ export class UserRepository implements IUserRepository {
     const res = await this.db.getReadConnection();
     if (!res) return new User();
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM users WHERE id = ?`, [id]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM users WHERE user_id = ?`, [id]);
       return rows.length > 0 ? this.map(rows[0]) : new User();
     } catch (err) {
       this.logger.error("UserRepository", "findById failed", err);
@@ -71,7 +71,7 @@ export class UserRepository implements IUserRepository {
     const res = await this.db.getReadConnection();
     if (!res) return [];
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM users ORDER BY id ASC`);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM users ORDER BY user_id ASC`);
       return rows.map((r) => this.map(r));
     } catch (err) {
       this.logger.error("UserRepository", "findAll failed", err);
@@ -84,7 +84,7 @@ export class UserRepository implements IUserRepository {
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE users SET username = ?, fullname = ?, email = ?, password = ?, bio = ?, profile_picture = ?, role = ?, updated_at = ? WHERE id = ?`,
+        `UPDATE users SET username = ?, full_name = ?, email = ?, password = ?, bio = ?, profile_picture = ?, role = ?, updated_at = ? WHERE user_id = ?`,
         [user.username, user.fullname, user.email, user.passwordHash, user.bio, user.profilePicture, user.role, user.updatedAt, user.id]
       );
       return result.affectedRows > 0;
@@ -99,7 +99,7 @@ export class UserRepository implements IUserRepository {
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE users SET isActive = 0 WHERE id = ?`, [id]
+        `UPDATE users SET /* no isActive column in schema; mark updated_at instead */ updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`, [id]
       );
       return result.affectedRows > 0;
     } catch (err) {
@@ -113,7 +113,7 @@ export class UserRepository implements IUserRepository {
     if (!res) return false;
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT COUNT(*) as cnt FROM users WHERE id = ?`, [id]
+        `SELECT COUNT(*) as cnt FROM users WHERE user_id = ?`, [id]
       );
       return (rows[0]?.cnt ?? 0) > 0;
     } catch (err) {

@@ -29,7 +29,7 @@ export class CommunityService implements ICommunityService {
   }
 
     async createCommunity(userId: number, createCommunityDto: CreateCommunityDto): Promise<CommunityDto> {
-        const community = new Community(0, userId, createCommunityDto.name, createCommunityDto.description, createCommunityDto.rules, createCommunityDto.avatarPicture, createCommunityDto.type);
+        const community = new Community(0, createCommunityDto.ownerId, createCommunityDto.name, createCommunityDto.description, createCommunityDto.rules, createCommunityDto.avatarPicture, createCommunityDto.type);
         const created = await this.communityRepository.createCommunity(community);
         if (created.id === 0) return new CommunityDto();
         await this.auditService.log({ userId, action: "COMMUNITY_CREATED", details: "communities"});

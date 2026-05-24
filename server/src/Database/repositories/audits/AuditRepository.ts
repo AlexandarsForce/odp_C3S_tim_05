@@ -17,7 +17,7 @@ export class AuditRepository implements IAuditRepository {
     if (!res) return new Audit();
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `INSERT INTO audits (userId, action, details, ipAddress, createdAt)
+        `INSERT INTO audits (user_id, action, details, ip_address, created_at)
          VALUES (?, ?, ?, ?, ?)`,
         [log.userId ?? null, log.action, log.details ?? null, log.ipAddress ?? null, new Date()]
       );

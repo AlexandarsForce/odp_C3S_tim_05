@@ -57,7 +57,7 @@ export class CommunityController {
 
     private async createCommunity(req: Request, res: Response): Promise<void> {
         const { ownerId, name, description, rules, avatarPicture,type} = req.body as CreateCommunityDto;
-        const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(ownerId, name, description, rules, avatarPicture,type));
+        const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
         res.status(201).json({ success: true, data: community });
     }
 
