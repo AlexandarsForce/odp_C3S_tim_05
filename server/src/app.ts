@@ -12,6 +12,8 @@ import { CommunityMemberRepository } from "./Database/repositories/communities/C
 import { PostRepository } from "./Database/repositories/posts/PostRepository";
 import { PostTagRepository } from "./Database/repositories/posts/PostTagRepository";
 import { PostLikeRepository } from "./Database/repositories/posts/PostLikeRepository";
+import { CommentRepository } from "./Database/repositories/comments/CommentRepository";
+import { CommentLikeRepository } from "./Database/repositories/comments/CommentLikeRepository";
 
 import { AuditService } from "./Services/audit/AuditService";
 import { AuthService }   from "./Services/auth/AuthService";
@@ -21,11 +23,14 @@ import { CommunityMemberService } from "./Services/communities/CommunityMemberSe
 import { PostService } from "./Services/posts/PostService";
 import { PostTagService } from "./Services/posts/PostTagService";
 import { PostLikeService } from "./Services/posts/PostLikeService";
+import { CommentService } from "./Services/comments/CommentService";
+import { CommentLikeService } from "./Services/comments/CommentLikeService";
 
 import { AuthController }   from "./WebAPI/controllers/AuthController";
 import { UserController }   from "./WebAPI/controllers/UserController";
 import { CommunityController } from "./WebAPI/controllers/CommunityController";
 import { PostController } from "./WebAPI/controllers/PostController";
+import { CommentController } from "./WebAPI/controllers/CommentController";
 
 export const logger = new ConsoleLoggerService();
 export const db     = new DbManager(logger);
@@ -38,6 +43,8 @@ const auditRepo = new AuditRepository(db, logger);
 const postRepo = new PostRepository(db, logger);
 const postTagRepo = new PostTagRepository(db, logger);
 const postLikeRepo = new PostLikeRepository(db, logger);
+const commentRepo = new CommentRepository(db, logger);
+const commentLikeRepo = new CommentLikeRepository(db, logger);
 
 // Services
 const auditService   = new AuditService(auditRepo);
@@ -48,6 +55,8 @@ const communityMemberService = new CommunityMemberService(communityMemberRepo, a
 const postService = new PostService(postRepo, auditService);
 const postTagService = new PostTagService(postTagRepo, auditService);
 const postLikeService = new PostLikeService(postLikeRepo, auditService);
+const commentService = new CommentService(commentRepo, auditService);
+const commentLikeService = new CommentLikeService(commentLikeRepo, auditService);
 
 // Express
 const app = express();
@@ -58,5 +67,6 @@ app.use("/api/v1", new AuthController(authService).getRouter());
 app.use("/api/v1", new UserController(userService).getRouter());
 app.use("/api/v1", new CommunityController(communityService, communityMemberService, auditService).getRouter());
 app.use("/api/v1", new PostController(postService, postLikeService, postTagService, auditService).getRouter());
+app.use("/api/v1", new CommentController(commentService, commentLikeService).getRouter());
 
 export default app;
