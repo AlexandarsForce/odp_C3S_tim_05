@@ -15,8 +15,8 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         if (!res) return false;
         try {
             const [result] = await res.conn.execute<ResultSetHeader>(
-                `INSERT INTO user_followers (user_id, follower_id, created_at) VALUES (?, ?, ?)`,
-                [userId, followerId, new Date()]
+                `INSERT INTO user_follows (follower_id, following_id, followed_at) VALUES (?, ?, ?)`,
+                [followerId, userId, new Date()]
             );
             return result.affectedRows > 0;
         } catch (err) {
@@ -29,8 +29,8 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         const res = await this.db.getReadConnection();
         if (!res) return { followers: [], totalAmount: 0 };
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_followers WHERE user_id = ?`, [userId]);
-            const followers = rows.map(r => new UserFollower(r.user_id, r.follower_id));
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE following_id = ?`, [userId]);
+            const followers = rows.map(r => new UserFollower(r.following_id, r.follower_id));
             return { followers, totalAmount: followers.length };
         } catch (err) {
             this.logger.error("UserFollowerRepository", "findAllFollowers failed", err);
@@ -42,8 +42,8 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         const res = await this.db.getReadConnection();
         if (!res) return { following: [], totalAmount: 0 };
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_followers WHERE follower_id = ?`, [userId]);
-            const following = rows.map(r => new UserFollower(r.user_id, r.follower_id));
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE follower_id = ?`, [userId]);
+            const following = rows.map(r => new UserFollower(r.following_id, r.follower_id));
             return { following, totalAmount: following.length };
         } catch (err) {
             this.logger.error("UserFollowerRepository", "findAllFollowing failed", err);
@@ -56,7 +56,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         if (!res) return false;
         try {
             const [result] = await res.conn.execute<ResultSetHeader>(
-                `DELETE FROM user_followers WHERE user_id = ? AND follower_id = ?`,
+                `DELETE FROM user_follows WHERE following_id = ? AND follower_id = ?`,
                 [userId, followerId]
             );
             return result.affectedRows > 0;
@@ -71,7 +71,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         if (!res) return false;
         try {
             const [result] = await res.conn.execute<ResultSetHeader>(
-                `DELETE FROM user_followers WHERE follower_id = ? AND user_id = ?`,
+                `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
                 [userId, followingId]
             );
             return result.affectedRows > 0;
