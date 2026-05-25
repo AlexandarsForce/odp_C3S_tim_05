@@ -45,14 +45,19 @@ export class CommentService implements ICommentService {
         return new PaginatedListDto(comments.map(c => this.toCommentDto(c)), totalAmount, page, limit);
     }
 
+    async getCommentReplies(parentId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>> {
+        const { comments, totalAmount } = await this.commentRepository.findCommentsByParentId(parentId);
+        return new PaginatedListDto(comments.map(c => this.toCommentDto(c)), totalAmount, page, limit);
+    }
+
     async updateComment(userId: number, commentId: number, comment: UpdateCommentDto): Promise<boolean> {
         const existingComment = await this.commentRepository.findCommentById(commentId);
         if (existingComment.id === 0 || existingComment.authorId !== userId) return false;
         const updated = await this.commentRepository.updateComment(commentId, new Comment(
             commentId,
-            comment.postId,
+            existingComment.postId,
             userId,
-            comment.parentId,
+            existingComment.parentId,
             comment.content,
             existingComment.deleted,
             existingComment.createdAt
