@@ -4,6 +4,8 @@ import { PostLike } from "../../../Domain/models/PostLike";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class PostLikeRepository implements IPostLikeRepository {
   public constructor(
     private readonly db: DbManager,
@@ -48,17 +50,21 @@ private mapPostLike(r: RowDataPacket): PostLike {
     }
   }
 
-  async findPostLikesByPostId(postId: number): Promise<{ likes: PostLike[], totalAmount: number }> {
+  async findPostLikesByPostId(postId: number, page: number, limit: number): Promise<{ likes: PostLike[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { likes: [], totalAmount: 0 };
+
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
 
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT *
          FROM post_likes
          WHERE post_id = ?
-         ORDER BY liked_at DESC`,
-        [postId]
+         ORDER BY liked_at DESC
+         LIMIT ? OFFSET ?`,
+        [postId, lim, offset]
       );
 
       return {

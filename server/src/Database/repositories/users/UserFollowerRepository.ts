@@ -4,6 +4,8 @@ import { UserFollower } from "../../../Domain/models/UserFollower";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class UserFollowerRepository implements IUserFollowerRepository {
     public constructor(
         private readonly db: DbManager,
@@ -25,11 +27,13 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         } finally { res.conn.release(); }
     }
 
-    async findAllFollowers(userId: number): Promise<{ followers: UserFollower[], totalAmount: number }> {
+    async findAllFollowers(userId: number, page: number, limit: number): Promise<{ followers: UserFollower[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { followers: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE following_id = ?`, [userId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE following_id = ? LIMIT ? OFFSET ?`, [userId, lim, offset]);
             const followers = rows.map(r => new UserFollower(r.following_id, r.follower_id));
             return { followers, totalAmount: followers.length };
         } catch (err) {
@@ -38,11 +42,13 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         } finally { res.conn.release(); }
     }
 
-    async findAllFollowing(userId: number): Promise<{ following: UserFollower[], totalAmount: number }> {
+    async findAllFollowing(userId: number, page: number, limit: number): Promise<{ following: UserFollower[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { following: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE follower_id = ?`, [userId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE follower_id = ? LIMIT ? OFFSET ?`, [userId, lim, offset]);
             const following = rows.map(r => new UserFollower(r.following_id, r.follower_id));
             return { following, totalAmount: following.length };
         } catch (err) {

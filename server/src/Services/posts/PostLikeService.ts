@@ -45,9 +45,9 @@ export class PostLikeService implements IPostLikeService {
         return success;
     }
 
-    async getPostLikes(userId: number, postId: number): Promise<PaginatedListDto<PostLikeDto>> {
-        const { likes, totalAmount } = await this.postLikeRepository.findPostLikesByPostId(postId);
+    async getPostLikes(userId: number, postId: number, page: number, limit: number): Promise<PaginatedListDto<PostLikeDto>> {
+        const { likes, totalAmount } = await this.postLikeRepository.findPostLikesByPostId(postId, page, limit);
         const likeDtos = likes.map(like => this.toDto(like));
-        return new PaginatedListDto<PostLikeDto>(likeDtos, totalAmount);
+        return new PaginatedListDto<PostLikeDto>(likeDtos, totalAmount, page, limit);
     }
 }

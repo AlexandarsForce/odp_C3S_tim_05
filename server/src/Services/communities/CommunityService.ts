@@ -44,19 +44,19 @@ export class CommunityService implements ICommunityService {
 
     async getAllCommunities( page: number, limit: number, isAdmin: boolean): Promise<PaginatedListDto<CommunityDto>> {
         if(isAdmin) {
-            const { communities, totalAmount } = await this.communityRepository.findAllCommunities();
+            const { communities, totalAmount } = await this.communityRepository.findAllCommunities(page, limit);
             return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
         }
         return new PaginatedListDto<CommunityDto>();
     }
 
     async getPublicCommunities(page: number, limit: number): Promise<PaginatedListDto<CommunityDto>> {
-        const { communities, totalAmount } = await this.communityRepository.findCommunityByType(CommunityType.PUBLIC);
+        const { communities, totalAmount } = await this.communityRepository.findCommunityByType(CommunityType.PUBLIC, page, limit);
         return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
     }
 
     async getCommunityByMemberId(memberId: number, page: number, limit: number): Promise<PaginatedListDto<CommunityDto>> {
-        const { communities, totalAmount } = await this.communityRepository.findCommunityByMemberId(memberId);
+        const { communities, totalAmount } = await this.communityRepository.findCommunityByMemberId(memberId, page, limit);
         return new PaginatedListDto(communities.map((c) => this.toDto(c)), totalAmount, page, limit);
     }
 

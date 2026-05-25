@@ -44,7 +44,7 @@ export class CommunityMemberService implements ICommunityMemberService {
     }
 
     async getCommunityMembers(userId: number, communityId: number, page: number, limit: number): Promise<PaginatedListDto<CommunityMemberDto>> {
-        const { members, totalAmount } = await this.communityRepository.findAllCommunityMembers(communityId);
+        const { members, totalAmount } = await this.communityRepository.findAllCommunityMembers(communityId, page, limit);
         return new PaginatedListDto(members.map((m) => this.toDto(m)), totalAmount, page, limit);
     }
 

@@ -64,12 +64,15 @@ export class PostController {
 
     private async getPostDetails(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
+        const page = parseInt(String(req.query.page ?? "1"), 10);
+        const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
         const post = await this.postService.getPostDetails(postId);
         if (post.id === 0) {
             res.status(404).json({ success: false, message: "Post not found" });
             return;
         }
-        res.status(200).json({ success: true, data: post });
+        const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, page, limit);
+        res.status(200).json({ success: true, data: post, likes: postLikes });
     }
 
     private async updatePost(req: Request, res: Response): Promise<void> {

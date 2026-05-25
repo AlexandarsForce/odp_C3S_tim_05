@@ -4,6 +4,8 @@ import { PostTag } from "../../../Domain/models/PostTag";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class PostTagRepository implements IPostTagRepository {
   public constructor(
     private readonly db: DbManager,
@@ -42,16 +44,20 @@ export class PostTagRepository implements IPostTagRepository {
     }
   }
 
-  async findPostTagsByPostId(postId: number): Promise<{ tags: PostTag[], totalAmount: number }> {
+  async findPostTagsByPostId(postId: number, page: number, limit: number): Promise<{ tags: PostTag[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { tags: [], totalAmount: 0 };
+
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
 
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT *
          FROM post_tags
-         WHERE post_id = ?`,
-        [postId]
+         WHERE post_id = ?
+         LIMIT ? OFFSET ?`,
+        [postId, lim, offset]
       );
 
       return {

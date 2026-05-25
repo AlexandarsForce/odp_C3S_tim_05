@@ -5,6 +5,8 @@ import { CommunityType } from '../../../Domain/enums/CommunityType';
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class CommunityRepository implements ICommunityRepository {
   public constructor(
     private readonly db: DbManager,
@@ -71,11 +73,13 @@ export class CommunityRepository implements ICommunityRepository {
     finally { res.conn.release(); }
   }
 
-  async findCommunityByType(type: CommunityType): Promise<{ communities: Community[], totalAmount: number }> {
+  async findCommunityByType(type: CommunityType, page: number, limit: number): Promise<{ communities: Community[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { communities: [], totalAmount: 0 };
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE type = ? ORDER BY name ASC`, [type]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE type = ? ORDER BY name ASC LIMIT ? OFFSET ?`, [type, lim, offset]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount: rows.length
@@ -88,11 +92,13 @@ export class CommunityRepository implements ICommunityRepository {
     finally { res.conn.release(); }
   }
 
-  async findCommunityByOwnerId(ownerId: number): Promise<{ communities: Community[], totalAmount: number }> {
+  async findCommunityByOwnerId(ownerId: number, page: number, limit: number): Promise<{ communities: Community[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { communities: [], totalAmount: 0 };
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE owner_id = ? ORDER BY name ASC`, [ownerId]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE owner_id = ? ORDER BY name ASC LIMIT ? OFFSET ?`, [ownerId, lim, offset]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount: rows.length
@@ -105,12 +111,14 @@ export class CommunityRepository implements ICommunityRepository {
     finally { res.conn.release(); }
   }
 
-  async findCommunityByMemberId(memberId: number): Promise<{ communities: Community[], totalAmount: number }> {
+  async findCommunityByMemberId(memberId: number, page: number, limit: number): Promise<{ communities: Community[], totalAmount: number }> {
     const resReadMembers = await this.db.getReadConnection();
     if (!resReadMembers) return { communities: [], totalAmount: 0 };
     let communityIds: number[] = [];
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
     try {
-      const [rows] = await resReadMembers.conn.execute<RowDataPacket[]>(`SELECT community_id FROM community_members WHERE user_id = ?`, [memberId]);
+      const [rows] = await resReadMembers.conn.execute<RowDataPacket[]>(`SELECT community_id FROM community_members WHERE user_id = ? LIMIT ? OFFSET ?`, [memberId, lim, offset]);
       communityIds = rows.map((row) => row.community_id);
       if (communityIds.length === 0) return { communities: [], totalAmount: 0 };
     }
@@ -136,11 +144,13 @@ export class CommunityRepository implements ICommunityRepository {
     finally { resReadCommunities.conn.release(); }
   }
 
-  async findAllCommunities(): Promise<{ communities: Community[]; totalAmount: number; }> {
+  async findAllCommunities(page: number, limit: number): Promise<{ communities: Community[]; totalAmount: number; }> {
     const res = await this.db.getReadConnection();
     if (!res) return { communities: [], totalAmount: 0 };
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC`);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC LIMIT ? OFFSET ?`, [lim, offset]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount: rows.length

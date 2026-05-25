@@ -18,15 +18,16 @@ export class UserFollowerService implements IUserFollowerService {
     }
 
     async getFollowers(userId: number, page: number, limit: number): Promise<PaginatedListDto<UserFollowerDto>> {
-        const { followers, totalAmount } = await this.userFollowerRepository.findAllFollowers(userId);
-        const paginatedFollowers = followers.slice((page - 1) * limit, page * limit).map(f => new UserFollowerDto(f.followingId, f.followerId));
-        return new PaginatedListDto(paginatedFollowers, totalAmount, page, limit);
+        const { followers, totalAmount } = await this.userFollowerRepository.findAllFollowers(userId,page,limit);
+        const followerDtos = followers.map(f => new UserFollowerDto(f.followingId, f.followerId));
+        return new PaginatedListDto<UserFollowerDto>(followerDtos, totalAmount, page, limit);
+
     }
 
     async getFollowing(userId: number, page: number, limit: number): Promise<PaginatedListDto<UserFollowerDto>> {
-        const { following, totalAmount } = await this.userFollowerRepository.findAllFollowing(userId);
-        const paginatedFollowing = following.slice((page - 1) * limit, page * limit).map(f => new UserFollowerDto(f.followingId, f.followerId));
-        return new PaginatedListDto(paginatedFollowing, totalAmount, page, limit);
+        const { following, totalAmount } = await this.userFollowerRepository.findAllFollowing(userId, page, limit);
+        const followingDtos = following.map(f => new UserFollowerDto(f.followerId, f.followingId));
+        return new PaginatedListDto<UserFollowerDto>(followingDtos, totalAmount, page, limit);
     }
 
     async unfollowUser(userId: number, unfollowUserId: number): Promise<boolean> {

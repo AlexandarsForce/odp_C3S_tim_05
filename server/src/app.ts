@@ -7,6 +7,7 @@ import { DbManager } from "./Database/connection/DbConnectionPool";
 
 import { AuditRepository } from "./Database/repositories/audits/AuditRepository";
 import { UserRepository }   from "./Database/repositories/users/UserRepository";
+import { UserFollowerRepository } from "./Database/repositories/users/UserFollowerRepository";
 import { CommunityRepository } from "./Database/repositories/communities/CommunityRepository";
 import { CommunityMemberRepository } from "./Database/repositories/communities/CommunityMemberRepository";
 import { PostRepository } from "./Database/repositories/posts/PostRepository";
@@ -18,6 +19,7 @@ import { CommentLikeRepository } from "./Database/repositories/comments/CommentL
 import { AuditService } from "./Services/audit/AuditService";
 import { AuthService }   from "./Services/auth/AuthService";
 import { UserService }   from "./Services/users/UserService";
+import { UserFollowerService } from "./Services/users/UserFollowerService";
 import { CommunityService } from "./Services/communities/CommunityService";
 import { CommunityMemberService } from "./Services/communities/CommunityMemberService";
 import { PostService } from "./Services/posts/PostService";
@@ -45,11 +47,12 @@ const postTagRepo = new PostTagRepository(db, logger);
 const postLikeRepo = new PostLikeRepository(db, logger);
 const commentRepo = new CommentRepository(db, logger);
 const commentLikeRepo = new CommentLikeRepository(db, logger);
-
+const userFollowerRepo = new UserFollowerRepository(db, logger);
 // Services
 const auditService   = new AuditService(auditRepo);
 const authService   = new AuthService(userRepo);
 const userService   = new UserService(userRepo);
+const userFollowerService = new UserFollowerService(userFollowerRepo, auditService);
 const communityService = new CommunityService(communityRepo, auditService);
 const communityMemberService = new CommunityMemberService(communityMemberRepo, auditService);
 const postService = new PostService(postRepo, auditService);
@@ -64,7 +67,7 @@ app.use(cors({ origin: process.env.CLIENT_URL ?? "*" }));
 app.use(express.json());
 
 app.use("/api/v1", new AuthController(authService).getRouter());
-app.use("/api/v1", new UserController(userService).getRouter());
+app.use("/api/v1", new UserController(userService, userFollowerService).getRouter());
 app.use("/api/v1", new CommunityController(communityService, communityMemberService, auditService).getRouter());
 app.use("/api/v1", new PostController(postService, postLikeService, postTagService, auditService).getRouter());
 app.use("/api/v1", new CommentController(commentService, commentLikeService).getRouter());

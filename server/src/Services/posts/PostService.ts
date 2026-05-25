@@ -35,12 +35,12 @@ export class PostService implements IPostService {
     }
 
     async getAllPosts(communityId: number, page: number, limit: number): Promise<PaginatedListDto<PostDto>> {
-        const { posts, totalAmount } = await this.postRepository.findPostsByCommunityId(communityId);
+        const { posts, totalAmount } = await this.postRepository.findPostsByCommunityId(communityId, page, limit);
         return new PaginatedListDto(posts.map((p) => this.toDto(p)), totalAmount, page, limit);
     }
 
     async getFeed(userId: number, page: number, limit: number): Promise<PaginatedListDto<PostDto>> {
-        const { posts, totalAmount } = await this.postRepository.findPostsByAuthorId(userId);
+        const { posts, totalAmount } = await this.postRepository.findPostsByAuthorId(userId, page, limit);
         return new PaginatedListDto(posts.map((p) => this.toDto(p)), totalAmount, page, limit);
     }
 

@@ -4,10 +4,10 @@ export interface IPostRepository {
   createPost(post: Post): Promise<Post>;
 
   findPostById(postId: number): Promise<Post>;
-  findPostsByCommunityId(communityId: number): Promise<{ posts: Post[], totalAmount: number }>;
-  findPostsByAuthorId(authorId: number): Promise<{ posts: Post[], totalAmount: number }>;
-  findPostsByTagId(tagId: number): Promise<{ posts: Post[], totalAmount: number }>;
-  findPostsByTagName(tagName: string): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByCommunityId(communityId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByAuthorId(authorId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByTagId(tagId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }>;
+  findPostsByTagName(tagName: string, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }>;
 
   updatePost(postId: number, post: Post): Promise<boolean>;
 

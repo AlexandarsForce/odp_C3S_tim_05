@@ -6,6 +6,8 @@ import { CommunityMemberStatus } from "../../../Domain/enums/CommunityMemberStat
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class CommunityMemberRepository implements ICommunityMemberRepository {
     public constructor(
         private readonly db: DbManager,
@@ -68,11 +70,13 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         finally { res.conn.release(); }
     }
 
-    async findCommunityMemberByRole(communityId: number, role: CommunityMemberRole): Promise<{ members: CommunityMember[], totalAmount: number }> {
+    async findCommunityMemberByRole(communityId: number, role: CommunityMemberRole, page: number, limit: number): Promise<{ members: CommunityMember[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { members: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND role = ?`, [communityId, role]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND role = ? LIMIT ? OFFSET ?`, [communityId, role, lim, offset]);
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
                 totalAmount: rows.length
@@ -85,11 +89,13 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         finally { res.conn.release(); }
     }
 
-    async findCommunityMemberByStatus(communityId: number, status: CommunityMemberStatus): Promise<{ members: CommunityMember[], totalAmount: number }> {
+    async findCommunityMemberByStatus(communityId: number, status: CommunityMemberStatus, page: number, limit: number): Promise<{ members: CommunityMember[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { members: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND status = ?`, [communityId, status]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND status = ? LIMIT ? OFFSET ?`, [communityId, status, lim, offset]);
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
                 totalAmount: rows.length
@@ -102,15 +108,17 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         finally { res.conn.release(); }
     }
 
-    async findAllCommunityMembers(communityId: number): Promise<{ members: CommunityMember[], totalAmount: number }> {
+    async findAllCommunityMembers(communityId: number, page: number, limit: number): Promise<{ members: CommunityMember[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { members: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-        const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ?`, [communityId]);
-        return {
-            members: rows.map((row) => this.mapCommunityMember(row)),
-            totalAmount: rows.length
-        };
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? LIMIT ? OFFSET ?`, [communityId, lim, offset]);
+            return {
+                members: rows.map((row) => this.mapCommunityMember(row)),
+                totalAmount: rows.length
+            };
         }
         catch (err) {
         this.logger.error("CommunityMemberRepository", "findAllCommunityMembers failed", err);

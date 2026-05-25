@@ -6,5 +6,5 @@ export interface IPostLikeService {
     likePost(userId: number, postId: number, postLike: CreatePostLikeDto): Promise<PostLikeDto>;
     unlikePost(userId: number, postId: number): Promise<boolean>;
 
-    getPostLikes(userId: number, postId: number): Promise<PaginatedListDto<PostLikeDto>>;
+    getPostLikes(userId: number, postId: number, page: number, limit: number): Promise<PaginatedListDto<PostLikeDto>>;
 }

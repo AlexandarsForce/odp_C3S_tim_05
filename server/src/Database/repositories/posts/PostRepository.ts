@@ -4,6 +4,8 @@ import { Post } from "../../../Domain/models/Post";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class PostRepository implements IPostRepository {
     public constructor(
         private readonly db: DbManager, 
@@ -55,11 +57,13 @@ export class PostRepository implements IPostRepository {
         finally { res.conn.release(); }
     }
 
-    async findPostsByCommunityId(communityId: number): Promise<{ posts: Post[], totalAmount: number }> {
+    async findPostsByCommunityId(communityId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { posts: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE community_id = ?`, [communityId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE community_id = ? LIMIT ? OFFSET ?`, [communityId, lim, offset]);
             return { posts: rows.map(r => this.mapPost(r)), totalAmount: rows.length };
         }
         catch (err) {
@@ -69,11 +73,13 @@ export class PostRepository implements IPostRepository {
         finally { res.conn.release(); }
     }
 
-    async findPostsByAuthorId(authorId: number): Promise<{ posts: Post[], totalAmount: number }> {
+    async findPostsByAuthorId(authorId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { posts: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE author_id = ?`, [authorId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE author_id = ? LIMIT ? OFFSET ?`, [authorId, lim, offset]);
             return { posts: rows.map(r => this.mapPost(r)), totalAmount: rows.length };
         }
         catch (err) {
@@ -83,12 +89,14 @@ export class PostRepository implements IPostRepository {
         finally { res.conn.release(); }
     }
 
-    async findPostsByTagId(tagId: number): Promise<{ posts: Post[], totalAmount: number }> {
+    async findPostsByTagId(tagId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
         const resReadTags = await this.db.getReadConnection();
         if (!resReadTags) return { posts: [], totalAmount: 0 };
         let postIds: number[] = [];
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_id = ?`, [tagId]);
+            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_id = ? LIMIT ? OFFSET ?`, [tagId, lim, offset]);
             postIds = rows.map(r => r.post_id);
             if (postIds.length === 0) return { posts: [], totalAmount: 0 };
         }
@@ -114,12 +122,14 @@ export class PostRepository implements IPostRepository {
         finally { resReadPosts.conn.release(); }
     }
 
-    async findPostsByTagName(tagName: string): Promise<{ posts: Post[], totalAmount: number }> {
+    async findPostsByTagName(tagName: string, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
         const resReadTags = await this.db.getReadConnection();
         if (!resReadTags) return { posts: [], totalAmount: 0 };
         let postIds: number[] = [];
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
         try {
-            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_name = ?`, [tagName]);
+            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_name = ? LIMIT ? OFFSET ?`, [tagName, lim, offset]);
             postIds = rows.map(r => r.post_id);
             if (postIds.length === 0) return { posts: [], totalAmount: 0 };
         }
