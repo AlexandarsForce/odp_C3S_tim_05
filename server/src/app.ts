@@ -33,6 +33,7 @@ import { UserController }   from "./WebAPI/controllers/UserController";
 import { CommunityController } from "./WebAPI/controllers/CommunityController";
 import { PostController } from "./WebAPI/controllers/PostController";
 import { CommentController } from "./WebAPI/controllers/CommentController";
+import { HealthController } from "./WebAPI/controllers/HealthController";
 
 export const logger = new ConsoleLoggerService();
 export const db     = new DbManager(logger);
@@ -71,5 +72,6 @@ app.use("/api/v1", new UserController(userService, userFollowerService).getRoute
 app.use("/api/v1", new CommunityController(communityService, communityMemberService, auditService).getRouter());
 app.use("/api/v1", new PostController(postService, postLikeService, postTagService, auditService).getRouter());
 app.use("/api/v1", new CommentController(commentService, commentLikeService).getRouter());
+app.use("/api/v1", new HealthController(db, auditService).getRouter());
 
 export default app;
