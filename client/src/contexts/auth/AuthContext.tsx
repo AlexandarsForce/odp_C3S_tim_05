@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import type { AuthContextType } from "../../types/auth/AuthContext";
 import type { AuthUser } from "../../types/auth/AuthUser";
 import type { JwtTokenClaims } from "../../types/auth/JwtTokenClaims";
+import { authApi } from "../../api_services/auth/AuthAPIService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const KEY = "authToken";
@@ -59,7 +60,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem(KEY, t);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (token) await authApi.logout(token);
     setToken(null);
     setUser(null);
     localStorage.removeItem(KEY);

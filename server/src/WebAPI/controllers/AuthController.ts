@@ -1,6 +1,8 @@
 import { Request, Response, Router } from "express";
 import jwt from "jsonwebtoken";
 import { IAuthService } from "../../Domain/services/auth/IAuthService";
+import { IAuditService } from "../../Domain/services/audit/IAuditService";
+import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
 import { ValidationResult } from "../../Domain/types/ValidationResult";
 import { validateLogin } from "../validators/auth/validateLogin";
 import { validateRegister } from "../validators/auth/validateRegister";
@@ -8,9 +10,13 @@ import { validateRegister } from "../validators/auth/validateRegister";
 export class AuthController {
   private readonly router = Router();
 
-  public constructor(private readonly authService: IAuthService) {
+  public constructor(
+    private readonly authService: IAuthService,
+    private readonly auditService: IAuditService
+  ) {
     this.router.post("/auth/login", this.login.bind(this));
     this.router.post("/auth/register", this.register.bind(this));
+    this.router.post("/auth/logout", authenticate, this.logout.bind(this));
   }
 
   private async login(req: Request, res: Response): Promise<void> {
@@ -39,6 +45,11 @@ export class AuthController {
       { expiresIn: "24h" }
     );
     res.status(201).json({ success: true, message: "Registration successful", data: token });
+  }
+
+  private async logout(req: Request, res: Response): Promise<void> {
+    await this.auditService.log({ userId: req.user!.id, action: "USER_LOGOUT", details: "auth", ipAddress: req.ip });
+    res.status(200).json({ success: true, message: "Logged out successfully" });
   }
 
   public getRouter(): Router { return this.router; }
