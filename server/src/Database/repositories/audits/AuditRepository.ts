@@ -6,6 +6,8 @@ import { PaginatedListDto } from "../../../Domain/DTOs/entity/PaginatedListDto";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
+
 export class AuditRepository implements IAuditRepository {
   public constructor(
     private readonly db: DbManager,
@@ -33,8 +35,8 @@ export class AuditRepository implements IAuditRepository {
   async findAll(page: number, limit: number): Promise<PaginatedListDto<AuditDto>> {
     const res = await this.db.getReadConnection();
     if (!res) return new PaginatedListDto([], 0, page, limit);
-    const offset = Math.max(0, Math.floor((page - 1) * limit));
-    const lim    = Math.max(1, Math.floor(limit));
+    const offset = safeInt((page - 1) * limit);
+    const lim    = safeInt(limit);
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT al.*, u.username
