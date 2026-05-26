@@ -58,18 +58,21 @@ private mapPostLike(r: RowDataPacket): PostLike {
     const lim = safeInt(limit);
 
     try {
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM post_likes WHERE post_id = ?`, [postId]);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT *
          FROM post_likes
          WHERE post_id = ?
          ORDER BY liked_at DESC
-         LIMIT ? OFFSET ?`,
-        [postId, lim, offset]
+         LIMIT ${lim} OFFSET ${offset}`,
+        [postId]
       );
 
       return {
         likes: rows.map((row) => this.mapPostLike(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {

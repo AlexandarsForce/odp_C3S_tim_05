@@ -52,17 +52,20 @@ export class PostTagRepository implements IPostTagRepository {
     const lim = safeInt(limit);
 
     try {
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM post_tags WHERE post_id = ?`, [postId]);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT *
          FROM post_tags
          WHERE post_id = ?
-         LIMIT ? OFFSET ?`,
-        [postId, lim, offset]
+         LIMIT ${lim} OFFSET ${offset}`,
+        [postId]
       );
 
       return {
         tags: rows.map((row) => this.mapPostTag(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {

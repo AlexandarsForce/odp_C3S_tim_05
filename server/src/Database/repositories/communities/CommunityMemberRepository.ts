@@ -76,11 +76,14 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND role = ? LIMIT ? OFFSET ?`, [communityId, role, lim, offset]);
-            return {
-                members: rows.map((row) => this.mapCommunityMember(row)),
-                totalAmount: rows.length
-            };
+                type CountRow = RowDataPacket & { total: number | string };
+                const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ? AND role = ?`, [communityId, role]);
+                const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+                const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND role = ? LIMIT ${lim} OFFSET ${offset}`, [communityId, role]);
+                return {
+                    members: rows.map((row) => this.mapCommunityMember(row)),
+                    totalAmount
+                };
         }
         catch (err) {
             this.logger.error("CommunityMemberRepository", "findCommunityMemberByRole failed", err);
@@ -95,10 +98,13 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND status = ? LIMIT ? OFFSET ?`, [communityId, status, lim, offset]);
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ? AND status = ?`, [communityId, status]);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND status = ? LIMIT ${lim} OFFSET ${offset}`, [communityId, status]);
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
-                totalAmount: rows.length
+                totalAmount
             };
         }
         catch (err) {
@@ -114,10 +120,13 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? LIMIT ? OFFSET ?`, [communityId, lim, offset]);
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ?`, [communityId]);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? LIMIT ${lim} OFFSET ${offset}`, [communityId]);
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
-                totalAmount: rows.length
+                totalAmount
             };
         }
         catch (err) {

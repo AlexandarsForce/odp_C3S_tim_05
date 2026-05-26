@@ -79,10 +79,13 @@ export class CommunityRepository implements ICommunityRepository {
     const offset = safeInt((page - 1) * limit);
     const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE type = ? ORDER BY name ASC LIMIT ? OFFSET ?`, [type, lim, offset]);
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities WHERE type = ?`, [type]);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE type = ? ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`, [type]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {
@@ -98,10 +101,13 @@ export class CommunityRepository implements ICommunityRepository {
     const offset = safeInt((page - 1) * limit);
     const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE owner_id = ? ORDER BY name ASC LIMIT ? OFFSET ?`, [ownerId, lim, offset]);
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities WHERE owner_id = ?`, [ownerId]);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE owner_id = ? ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`, [ownerId]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {
@@ -118,7 +124,7 @@ export class CommunityRepository implements ICommunityRepository {
     const offset = safeInt((page - 1) * limit);
     const lim = safeInt(limit);
     try {
-      const [rows] = await resReadMembers.conn.execute<RowDataPacket[]>(`SELECT community_id FROM community_members WHERE user_id = ? LIMIT ? OFFSET ?`, [memberId, lim, offset]);
+      const [rows] = await resReadMembers.conn.execute<RowDataPacket[]>(`SELECT community_id FROM community_members WHERE user_id = ? LIMIT ${lim} OFFSET ${offset}`, [memberId]);
       communityIds = rows.map((row) => row.community_id);
       if (communityIds.length === 0) return { communities: [], totalAmount: 0 };
     }
@@ -131,10 +137,16 @@ export class CommunityRepository implements ICommunityRepository {
     const resReadCommunities = await this.db.getReadConnection();
     if (!resReadCommunities) return { communities: [], totalAmount: 0 };
     try {
-      const [rows] = await resReadCommunities.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE community_id IN (?) ORDER BY name ASC`, [communityIds]);
+      const placeholders = communityIds.map(() => '?').join(',');
+      const sql = `SELECT * FROM communities WHERE community_id IN (${placeholders}) ORDER BY name ASC`;
+      type CountRow = RowDataPacket & { total: number | string };
+      const countSql = `SELECT COUNT(*) as total FROM communities WHERE community_id IN (${placeholders})`;
+      const [countRows] = await resReadCommunities.conn.execute<RowDataPacket[]>(countSql, communityIds);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+      const [rows] = await resReadCommunities.conn.execute<RowDataPacket[]>(sql, communityIds);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {
@@ -150,10 +162,13 @@ export class CommunityRepository implements ICommunityRepository {
     const offset = safeInt((page - 1) * limit);
     const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC LIMIT ? OFFSET ?`, [lim, offset]);
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities`);
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     }
     catch (err) {

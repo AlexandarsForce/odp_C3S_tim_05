@@ -63,8 +63,11 @@ export class PostRepository implements IPostRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE community_id = ? LIMIT ? OFFSET ?`, [communityId, lim, offset]);
-            return { posts: rows.map(r => this.mapPost(r)), totalAmount: rows.length };
+                type CountRow = RowDataPacket & { total: number | string };
+                const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts WHERE community_id = ?`, [communityId]);
+                const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+                const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE community_id = ? LIMIT ${lim} OFFSET ${offset}`, [communityId]);
+                return { posts: rows.map(r => this.mapPost(r)), totalAmount };
         }
         catch (err) {
             this.logger.error("PostRepository", "findPostsByCommunityId failed", err);
@@ -79,8 +82,11 @@ export class PostRepository implements IPostRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE author_id = ? LIMIT ? OFFSET ?`, [authorId, lim, offset]);
-            return { posts: rows.map(r => this.mapPost(r)), totalAmount: rows.length };
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts WHERE author_id = ?`, [authorId]);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE author_id = ? LIMIT ${lim} OFFSET ${offset}`, [authorId]);
+            return { posts: rows.map(r => this.mapPost(r)), totalAmount };
         }
         catch (err) {
             this.logger.error("PostRepository", "findPostsByAuthorId failed", err);
@@ -96,7 +102,7 @@ export class PostRepository implements IPostRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_id = ? LIMIT ? OFFSET ?`, [tagId, lim, offset]);
+            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_id = ? LIMIT ${lim} OFFSET ${offset}`, [tagId]);
             postIds = rows.map(r => r.post_id);
             if (postIds.length === 0) return { posts: [], totalAmount: 0 };
         }
@@ -109,10 +115,15 @@ export class PostRepository implements IPostRepository {
         const resReadPosts = await this.db.getReadConnection();
         if (!resReadPosts) return { posts: [], totalAmount: 0 };
         try {
-            const [rows] = await resReadPosts.conn.query<RowDataPacket[]>(`SELECT * FROM posts WHERE post_id IN (?) ORDER BY created_at DESC`, [postIds]);
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await resReadPosts.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM post_tags WHERE tag_id = ?`, [tagId]);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const placeholders = postIds.map(() => '?').join(',');
+            const sql = `SELECT * FROM posts WHERE post_id IN (${placeholders}) ORDER BY created_at DESC`;
+            const [rows] = await resReadPosts.conn.execute<RowDataPacket[]>(sql, postIds);
             return { 
                 posts: rows.map(r => this.mapPost(r)),
-                totalAmount: rows.length 
+                totalAmount
             };
         }
         catch (err) {
@@ -129,7 +140,7 @@ export class PostRepository implements IPostRepository {
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
         try {
-            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_name = ? LIMIT ? OFFSET ?`, [tagName, lim, offset]);
+            const [rows] = await resReadTags.conn.execute<RowDataPacket[]>(`SELECT post_id FROM post_tags WHERE tag_name = ? LIMIT ${lim} OFFSET ${offset}`, [tagName]);
             postIds = rows.map(r => r.post_id);
             if (postIds.length === 0) return { posts: [], totalAmount: 0 };
         }
@@ -142,10 +153,15 @@ export class PostRepository implements IPostRepository {
         const resReadPosts = await this.db.getReadConnection();
         if (!resReadPosts) return { posts: [], totalAmount: 0 };
         try {
-            const [rows] = await resReadPosts.conn.query<RowDataPacket[]>(`SELECT * FROM posts WHERE post_id IN (?) ORDER BY created_at DESC`, [postIds]);
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await resReadPosts.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM post_tags WHERE tag_name = ?`, [tagName]);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const placeholders = postIds.map(() => '?').join(',');
+            const sql = `SELECT * FROM posts WHERE post_id IN (${placeholders}) ORDER BY created_at DESC`;
+            const [rows] = await resReadPosts.conn.execute<RowDataPacket[]>(sql, postIds);
             return { 
                 posts: rows.map(r => this.mapPost(r)),
-                totalAmount: rows.length 
+                totalAmount
             };
         }
         catch (err) {
