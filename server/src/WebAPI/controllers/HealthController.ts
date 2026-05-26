@@ -12,7 +12,7 @@ export class HealthController {
         private readonly healthService: IHealthService,
         private readonly auditService: IAuditService
     ) {
-        this.router.get("/health", authenticate, this.getPublicHealth.bind(this));
+        this.router.get("/health", this.getPublicHealth.bind(this));
         this.router.get("/health/db", authenticate, authorize(UserRole.ADMIN), this.getAllNodes.bind(this));
         this.router.post("/health/failover",authenticate, authorize(UserRole.ADMIN), this.startFailover.bind(this));
     }
