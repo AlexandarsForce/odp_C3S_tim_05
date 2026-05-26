@@ -15,6 +15,7 @@ import { PostTagRepository } from "./Database/repositories/posts/PostTagReposito
 import { PostLikeRepository } from "./Database/repositories/posts/PostLikeRepository";
 import { CommentRepository } from "./Database/repositories/comments/CommentRepository";
 import { CommentLikeRepository } from "./Database/repositories/comments/CommentLikeRepository";
+import { TagRepository } from "./Database/repositories/tags/TagRepository";
 
 import { AuditService } from "./Services/audit/AuditService";
 import { AuthService }   from "./Services/auth/AuthService";
@@ -27,6 +28,7 @@ import { PostTagService } from "./Services/posts/PostTagService";
 import { PostLikeService } from "./Services/posts/PostLikeService";
 import { CommentService } from "./Services/comments/CommentService";
 import { CommentLikeService } from "./Services/comments/CommentLikeService";
+import { TagService } from "./Services/tags/TagService";
 
 import { AuthController }   from "./WebAPI/controllers/AuthController";
 import { UserController }   from "./WebAPI/controllers/UserController";
@@ -35,6 +37,7 @@ import { PostController } from "./WebAPI/controllers/PostController";
 import { CommentController } from "./WebAPI/controllers/CommentController";
 import { HealthController } from "./WebAPI/controllers/HealthController";
 import { AuditController } from "./WebAPI/controllers/AuditController";
+import { TagController } from "./WebAPI/controllers/TagController";
 
 export const logger = new ConsoleLoggerService();
 export const db     = new DbManager(logger);
@@ -50,6 +53,7 @@ const postLikeRepo = new PostLikeRepository(db, logger);
 const commentRepo = new CommentRepository(db, logger);
 const commentLikeRepo = new CommentLikeRepository(db, logger);
 const userFollowerRepo = new UserFollowerRepository(db, logger);
+const tagRepo = new TagRepository(db, logger);
 // Services
 const auditService   = new AuditService(auditRepo);
 const authService   = new AuthService(userRepo);
@@ -62,6 +66,7 @@ const postTagService = new PostTagService(postTagRepo, auditService);
 const postLikeService = new PostLikeService(postLikeRepo, auditService);
 const commentService = new CommentService(commentRepo, auditService);
 const commentLikeService = new CommentLikeService(commentLikeRepo, auditService);
+const tagService = new TagService(tagRepo, auditService);
 
 // Express
 const app = express();
@@ -75,5 +80,6 @@ app.use("/api/v1", new PostController(postService, postLikeService, postTagServi
 app.use("/api/v1", new CommentController(commentService, commentLikeService).getRouter());
 app.use("/api/v1", new HealthController(db, auditService).getRouter());
 app.use("/api/v1", new AuditController(auditService).getRouter());
+app.use("/api/v1", new TagController(tagService).getRouter());
 
 export default app;
