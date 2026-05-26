@@ -4,6 +4,7 @@ import { DbNode } from "../../Domain/models/DbNode";
 import { NodeStatus } from "../../Domain/enums/NodeStatus";
 import { HEALTH_CHECK_TIMEOUT, HEALTH_CHECK_INTERVAL_MS } from "../../Domain/constants/Constants";
 import { ILoggerService } from "../../Domain/services/logger/ILoggerService";
+import { IHealthService } from "../../Domain/services/health/IHealthService";
 
 dotenv.config();
 
@@ -42,11 +43,15 @@ const slave2Pool: Pool = mysql.createPool({
   connectTimeout: HEALTH_CHECK_TIMEOUT,
 });
 
-interface NodeInfo { name: string; pool: Pool; node: DbNode; }
+interface NodeInfo { name: string; pool: Pool; node: DbNode; exReads?: boolean; orgMaster?: boolean}
 
-export class DbManager {
-  private readonly master: NodeInfo;
-  private readonly slaves: NodeInfo[];
+type ReplicaStatusRow = {
+  Seconds_Behind_Master: number | null;
+}
+
+export class DbManager implements IHealthService {
+  private master: NodeInfo;
+  private slaves: NodeInfo[];
   private slaveRrIndex: number = 0;
   private healthTimer: NodeJS.Timeout | null = null;
 
@@ -54,6 +59,7 @@ export class DbManager {
     this.master = {
       name: "master", pool: masterPool,
       node: new DbNode("master", process.env.DB_MASTER_HOST ?? "localhost", parseInt(process.env.DB_MASTER_PORT ?? "3306", 10)),
+      orgMaster: true,
     };
     this.slaves = [
       { name: "slave1", pool: slave1Pool, node: new DbNode("slave1", process.env.DB_SLAVE1_HOST ?? "localhost", parseInt(process.env.DB_SLAVE1_PORT ?? "3307", 10)) },
@@ -65,7 +71,11 @@ export class DbManager {
     const start = Date.now();
     let conn: PoolConnection | null = null;
     try {
-      conn = await info.pool.getConnection();
+      conn = await Promise.race([
+        info.pool.getConnection(),
+        new Promise<PoolConnection>((_, reject) => setTimeout(() => reject(new Error("Connection timeout")), HEALTH_CHECK_TIMEOUT)),
+      ]);
+
       await conn.query("SELECT 1");
       const ms = Date.now() - start;
       info.node.status = ms > HEALTH_CHECK_TIMEOUT ? NodeStatus.DEGRADED : NodeStatus.HEALTHY;
@@ -79,9 +89,215 @@ export class DbManager {
     }
   }
 
+  private async monitorRepLag(info: NodeInfo): Promise<void> {
+    if (info.node.status === NodeStatus.OFFLINE) {
+      info.node.repLagMs = null;
+      return;
+    }
+
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await info.pool.getConnection();
+
+      const [rows] = await conn.query(
+        "SHOW SLAVE STATUS"
+      ) as [ReplicaStatusRow[], mysql.FieldPacket[]];
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        const lag = rows[0].Seconds_Behind_Master;
+
+        info.node.repLagMs =
+          typeof lag === "number"
+            ? lag * 1000
+            : null;
+      }
+    } catch {
+      info.node.repLagMs = null;
+    } finally {
+      if (conn) conn.release();
+    }
+  }
+
+  private async autoPromoteSlave(): Promise<void> {
+    if (this.master.node.status !== NodeStatus.OFFLINE) {
+      return;
+    }
+
+    const candidate = this.slaves.find(
+      (s) =>
+        s.node.status !== NodeStatus.OFFLINE &&
+        !s.exReads
+    );
+
+    if (!candidate) {
+      this.logger.error(
+        "DB",
+        "Master offline and no slave available"
+      );
+      return;
+    }
+
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await candidate.pool.getConnection();
+
+      await conn.query("STOP REPLICA");
+      await conn.query("RESET REPLICA ALL");
+      await conn.query("SET GLOBAL read_only = 0");
+    } catch (err) {
+      this.logger.error(
+        "DB",
+        `Failed to promote ${candidate.name}`,
+        err
+      );
+
+      return;
+    } finally {
+      if (conn) conn.release();
+    }
+
+    const oldMaster = this.master;
+
+    this.slaves = this.slaves
+      .filter((s) => s.name !== candidate.name)
+      .concat({
+        ...oldMaster,
+        exReads: true,
+      });
+
+    this.master = {
+      ...candidate,
+    };
+
+    this.slaveRrIndex = 0;
+
+    this.logger.warn(
+      "DB",
+      `${candidate.name} promoted to master`
+    );
+  }
+
+  private async autoRestoreMaster(): Promise<void> {
+    if (this.master.orgMaster) {
+      return;
+    }
+
+    const original = this.slaves.find(
+      (s) =>
+        s.orgMaster &&
+        s.node.status !== NodeStatus.OFFLINE
+    );
+
+    if (!original) {
+      return;
+    }
+
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await original.pool.getConnection();
+
+      await conn.query("SET GLOBAL read_only = 0");
+    } catch {
+      return;
+    } finally {
+      if (conn) conn.release();
+    }
+
+    const currentMaster = this.master;
+
+    this.slaves = this.slaves
+      .filter((s) => s.name !== original.name)
+      .concat({
+        ...currentMaster,
+        exReads: false,
+      });
+
+    this.master = {
+      ...original,
+      orgMaster: true,
+    };
+
+    this.slaveRrIndex = 0;
+
+    this.logger.warn(
+      "DB",
+      `Original master restored: ${original.name}`
+    );
+  }
+
   public async runHealthCheck(): Promise<void> {
     await Promise.all([this.master, ...this.slaves].map((n) => this.checkNode(n)));
+    await Promise.all(this.slaves.map((s) => this.monitorRepLag(s)));
+
+    await this.autoPromoteSlave();
+
+    await this.autoRestoreMaster();
     this.logger.info("DB", [this.master, ...this.slaves].map((n) => `${n.name}=${n.node.status}`).join(" | "));
+  }
+
+  public async promoteSlave(idx: number): Promise<{ success: boolean; message: string }> {
+    if (idx < 0 || idx >= this.slaves.length) {
+      return {
+        success: false,
+        message: "Invalid slave index",
+      };
+    }
+
+    const slave = this.slaves[idx];
+
+    if (slave.node.status === NodeStatus.OFFLINE) {
+      return {
+        success: false,
+        message: "Slave is offline",
+      };
+    }
+
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await slave.pool.getConnection();
+
+      await conn.query("STOP REPLICA");
+      await conn.query("RESET REPLICA ALL");
+      await conn.query("SET GLOBAL read_only = 0");
+    } catch (err) {
+      this.logger.error(
+        "DB",
+        "Promotion failed",
+        err
+      );
+
+      return {
+        success: false,
+        message: "Promotion failed",
+      };
+    } finally {
+      if (conn) conn.release();
+    }
+
+    const oldMaster = this.master;
+
+    this.slaves = this.slaves
+      .filter((_, i) => i !== idx)
+      .concat({
+        ...oldMaster,
+        exReads: true,
+      });
+
+    this.master = slave;
+
+    this.logger.warn(
+      "DB",
+      `${slave.name} promoted manually`
+    );
+
+    return {
+      success: true,
+      message: `${slave.name} promoted to master`,
+    };
   }
 
   public async init(): Promise<void> {
@@ -113,7 +329,7 @@ export class DbManager {
     for (let i = 0; i < n; i++) {
       const idx = (this.slaveRrIndex + i) % n;
       const info = this.slaves[idx];
-      if (info.node.status === NodeStatus.OFFLINE) continue;
+      if (info.node.status === NodeStatus.OFFLINE || info.exReads) continue;
       try {
         const conn = await info.pool.getConnection();
         this.slaveRrIndex = (idx + 1) % n;

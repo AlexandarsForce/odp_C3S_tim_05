@@ -5,6 +5,7 @@ export class DbNode {
   public lastCheck: Date       = new Date();
   public successfulWrites: number = 0;
   public failedWrites: number  = 0;
+  public repLagMs: number | null = null;
 
   constructor(
     public readonly name: string,
