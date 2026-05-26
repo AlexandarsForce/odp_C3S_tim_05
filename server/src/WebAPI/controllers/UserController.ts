@@ -15,7 +15,7 @@ export class UserController {
     {
     this.router.get("/users/search", authenticate, this.searchUser.bind(this));
     this.router.get("/users/all",          authenticate, authorize(UserRole.ADMIN), this.getAll.bind(this));
-    this.router.get("/users/:id",      authenticate, authorize(UserRole.ADMIN), this.getById.bind(this));
+    this.router.get("/users/:id",      authenticate, this.getById.bind(this));
     this.router.patch("/users/:id/deactivate", authenticate, authorize(UserRole.ADMIN), this.deactivate.bind(this));
     this.router.put("/users/me",        authenticate, this.updateMe.bind(this));
     this.router.put("/users/:id/role", authenticate, authorize(UserRole.ADMIN), this.updateUserRole.bind(this));
@@ -57,9 +57,8 @@ export class UserController {
   }
 
   private async updateMe(req: Request, res: Response): Promise<void> {
-    const userId = parseInt(req.params.id as string, 10);
     const { username, fullname, email, bio, profilePicture, role } = req.body as UpdateUserDto;
-    const ok = await this.userService.updateUser(userId, new UpdateUserDto(username, fullname, email, bio, profilePicture, role));
+    const ok = await this.userService.updateUser(req.user!.id, new UpdateUserDto(username, fullname, email, bio, profilePicture, role));
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User updated" : "Failed to update user" });
   }
 
@@ -90,18 +89,16 @@ export class UserController {
   }
 
   private async followUser(req: Request, res: Response): Promise<void> {
-    const userId = parseInt(req.params.id as string, 10);
-    const followUserId = parseInt(req.params.followId as string, 10);
-    if (isNaN(userId) || isNaN(followUserId)) { res.status(400).json({ success: false, message: "Invalid user ids" }); return; }
-    const ok = await this.userFollowerService.followUser(userId, followUserId);
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
+    const ok = await this.userFollowerService.followUser(req.user!.id, targetId);
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User followed" : "Failed to follow user" });
   }
 
   private async unfollowUser(req: Request, res: Response): Promise<void> {
-    const userId = parseInt(req.params.id as string, 10);
-    const unfollowUserId = parseInt(req.params.unfollowId as string, 10);
-    if (isNaN(userId) || isNaN(unfollowUserId)) { res.status(400).json({ success: false, message: "Invalid user ids" }); return; }
-    const ok = await this.userFollowerService.unfollowUser(userId, unfollowUserId);
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
+    const ok = await this.userFollowerService.unfollowUser(req.user!.id, targetId);
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User unfollowed" : "Failed to unfollow user" });
   }
 }
