@@ -7,5 +7,6 @@ export class Comment{
         public content: string = "",
         public deleted: boolean = false,
         public createdAt: Date = new Date(),
+        public reported: boolean = false,
     ) {}
 }
