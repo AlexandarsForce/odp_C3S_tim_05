@@ -25,8 +25,13 @@ export class CommunityMemberService implements ICommunityMemberService {
         );
     }
 
+    async isModerator(userId: number, communityId: number): Promise<boolean> {
+        const member = await this.communityRepository.findCommunityMemberById(communityId, userId);
+        return member.userId !== 0 && member.role === CommunityMemberRole.MODERATOR && member.status === CommunityMemberStatus.ACTIVE;
+    }
+
     async requestJoinCommunity(userId: number, communityId: number): Promise<boolean> {
-        const communityMember = new CommunityMember(userId, communityId);
+        const communityMember = new CommunityMember(userId, communityId, CommunityMemberRole.MEMBER, CommunityMemberStatus.PENDING);
         const result = await this.communityRepository.addCommunityMember(communityId, communityMember);
         if (result) {
             await this.auditService.log({ userId, action: "REQUEST_JOIN_COMMUNITY", details: `communityId: ${communityId}` });
@@ -34,11 +39,15 @@ export class CommunityMemberService implements ICommunityMemberService {
         return result;
     }
 
-    async responseJoinCommunity(userId: number, communityId: number, response: ResponseCommunityDto): Promise<boolean> {
-        const communityMember = new CommunityMember(userId, communityId);
-        const result = await this.communityRepository.addCommunityMember(communityId, communityMember);
+    // Bug fix #3: actorId is the moderator, targetUserId is the applicant whose status changes
+    async responseJoinCommunity(actorId: number, communityId: number, targetUserId: number, response: ResponseCommunityDto): Promise<boolean> {
+        const applicant = await this.communityRepository.findCommunityMemberById(communityId, targetUserId);
+        if (applicant.userId === 0 || applicant.status !== CommunityMemberStatus.PENDING) return false;
+
+        const newStatus = response.accepted ? CommunityMemberStatus.ACTIVE : CommunityMemberStatus.BANNED;
+        const result = await this.communityRepository.updateMemberStatus(communityId, targetUserId, newStatus);
         if (result) {
-            await this.auditService.log({ userId, action: "RESPONSE_JOIN_COMMUNITY", details: `communityId: ${communityId}, accepted: ${response.accepted}` });
+            await this.auditService.log({ userId: actorId, action: "RESPONSE_JOIN_COMMUNITY", details: `communityId: ${communityId}, targetUserId: ${targetUserId}, accepted: ${response.accepted}` });
         }
         return result;
     }
@@ -48,13 +57,13 @@ export class CommunityMemberService implements ICommunityMemberService {
         return new PaginatedListDto(members.map((m) => this.toDto(m)), totalAmount, page, limit);
     }
 
-    async updateCommunityMemberRole(userId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<boolean> {
+    async updateCommunityMemberRole(actorId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<boolean> {
         const communityMember = await this.communityRepository.findCommunityMemberById(communityId, memberId);
         if (communityMember.userId === 0) return false;
         communityMember.role = newRole.role;
         const result = await this.communityRepository.updateCommunityMember(communityId, communityMember);
         if (result) {
-            await this.auditService.log({ userId, action: "UPDATE_COMMUNITY_MEMBER_ROLE", details: `communityId: ${communityId}, memberId: ${memberId}, newRole: ${newRole.role}` });
+            await this.auditService.log({ userId: actorId, action: "UPDATE_COMMUNITY_MEMBER_ROLE", details: `communityId: ${communityId}, memberId: ${memberId}, newRole: ${newRole.role}` });
         }
         return result;
     }
@@ -74,5 +83,4 @@ export class CommunityMemberService implements ICommunityMemberService {
         }
         return result;
     }
-
 }

@@ -1,5 +1,6 @@
 import { ICommunityService } from "../../Domain/services/communities/ICommunityService";
 import { ICommunityRepository } from "../../Domain/repositories/communities/ICommunityRepository";
+import { ICommunityMemberRepository } from "../../Domain/repositories/communities/ICommunityMemberRepository";
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { CommunityDto } from "../../Domain/DTOs/communities/CommunityDto";
 import { CreateCommunityDto } from "../../Domain/DTOs/communities/CreateCommunityDto";
@@ -7,10 +8,14 @@ import { UpdateCommunityDto } from "../../Domain/DTOs/communities/UpdateCommunit
 import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
 import { CommunityType } from "../../Domain/enums/CommunityType";
 import { Community } from "../../Domain/models/Community";
+import { CommunityMember } from "../../Domain/models/CommunityMember";
+import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";
+import { CommunityMemberStatus } from "../../Domain/enums/CommunityMemberStatus";
 
 export class CommunityService implements ICommunityService {
   public constructor(
     private readonly communityRepository: ICommunityRepository,
+    private readonly communityMemberRepository: ICommunityMemberRepository,
     private readonly auditService: IAuditService
   ) {}
 
@@ -32,6 +37,9 @@ export class CommunityService implements ICommunityService {
         const community = new Community(0, createCommunityDto.ownerId, createCommunityDto.name, createCommunityDto.description, createCommunityDto.rules, createCommunityDto.avatarPicture, createCommunityDto.type);
         const created = await this.communityRepository.createCommunity(community);
         if (created.id === 0) return new CommunityDto();
+        // Add owner as active moderator automatically
+        const ownerMember = new CommunityMember(userId, created.id, CommunityMemberRole.MODERATOR, CommunityMemberStatus.ACTIVE);
+        await this.communityMemberRepository.addCommunityMember(created.id, ownerMember);
         await this.auditService.log({ userId, action: "COMMUNITY_CREATED", details: "communities"});
         return this.toDto(created);
     }
@@ -77,6 +85,9 @@ export class CommunityService implements ICommunityService {
     }
 
     async deleteCommunity(userId: number, communityId: number): Promise<boolean> {
+        const member = await this.communityMemberRepository.findCommunityMemberById(communityId, userId);
+        const isMod = member.userId !== 0 && member.role === CommunityMemberRole.MODERATOR && member.status === CommunityMemberStatus.ACTIVE;
+        if (!isMod) return false;
         const success = await this.communityRepository.deleteCommunity(communityId);
         if (success) await this.auditService.log({ userId, action: "COMMUNITY_DELETED", details: "communities"});
         return success;
