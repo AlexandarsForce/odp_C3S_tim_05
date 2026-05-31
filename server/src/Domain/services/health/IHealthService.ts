@@ -1,6 +1,7 @@
 import { DbNode } from "../../models/DbNode";
 
 export interface IHealthService {
-    getNodes(): DbNode[];
-    promoteSlave(idx: number): Promise<{ success: boolean; message: string }>;
+    getHealthStatus(): DbNode[];
+    promoteSlaveToMaster(idx: number): Promise<{ success: boolean; message: string }>;
+    isWriteAvailable(): boolean;
 }

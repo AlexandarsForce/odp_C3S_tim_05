@@ -55,12 +55,17 @@ export class CommentController {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        const comment = await this.commentService.createComment(req.user!.id, dto);
-        if (comment.id === 0) {
-            res.status(400).json({ success: false, message: "Unable to create comment" });
-            return;
+        try {
+            const comment = await this.commentService.createComment(req.user!.id, dto);
+            if (comment.id === 0) {
+                res.status(400).json({ success: false, message: "Unable to create comment" });
+                return;
+            }
+            res.status(201).json({ success: true, data: comment });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Unable to create comment";
+            res.status(400).json({ success: false, message });
         }
-        res.status(201).json({ success: true, data: comment });
     }
 
     private async updateComment(req: Request, res: Response): Promise<void> {

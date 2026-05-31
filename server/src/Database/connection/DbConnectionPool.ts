@@ -2,9 +2,10 @@ import mysql, { Pool, PoolConnection } from "mysql2/promise";
 import dotenv from "dotenv";
 import { DbNode } from "../../Domain/models/DbNode";
 import { NodeStatus } from "../../Domain/enums/NodeStatus";
-import { HEALTH_CHECK_TIMEOUT, HEALTH_CHECK_INTERVAL_MS } from "../../Domain/constants/Constants";
+import { HEALTH_CHECK_TIMEOUT } from "../../Domain/constants/Constants";
 import { ILoggerService } from "../../Domain/services/logger/ILoggerService";
 import { IHealthService } from "../../Domain/services/health/IHealthService";
+import { IAuditService } from "../../Domain/services/audit/IAuditService";
 
 dotenv.config();
 
@@ -54,6 +55,16 @@ export class DbManager implements IHealthService {
   private slaves: NodeInfo[];
   private slaveRrIndex: number = 0;
   private healthTimer: NodeJS.Timeout | null = null;
+  private failoverInProgress: boolean = false;
+  private auditService: IAuditService | null = null;
+
+  public setAuditService(service: IAuditService): void {
+    this.auditService = service;
+  }
+
+  public isWriteAvailable(): boolean {
+    return this.master.node.status !== NodeStatus.UNREACHABLE && !this.failoverInProgress;
+  }
 
   public constructor(private readonly logger: ILoggerService) {
     this.master = {
@@ -80,7 +91,7 @@ export class DbManager implements IHealthService {
       const ms = Date.now() - start;
       info.node.status = ms > HEALTH_CHECK_TIMEOUT ? NodeStatus.DEGRADED : NodeStatus.HEALTHY;
     } catch (err) {
-      info.node.status = NodeStatus.OFFLINE;
+      info.node.status = NodeStatus.UNREACHABLE;
       info.node.failedWrites++;
       this.logger.warn("DB", `Node ${info.name} failed health check`);
     } finally {
@@ -90,7 +101,7 @@ export class DbManager implements IHealthService {
   }
 
   private async monitorRepLag(info: NodeInfo): Promise<void> {
-    if (info.node.status === NodeStatus.OFFLINE) {
+    if (info.node.status === NodeStatus.UNREACHABLE) {
       info.node.repLagMs = null;
       return;
     }
@@ -120,24 +131,22 @@ export class DbManager implements IHealthService {
   }
 
   private async autoPromoteSlave(): Promise<void> {
-    if (this.master.node.status !== NodeStatus.OFFLINE) {
+    if (this.master.node.status !== NodeStatus.UNREACHABLE) {
       return;
     }
 
     const candidate = this.slaves.find(
       (s) =>
-        s.node.status !== NodeStatus.OFFLINE &&
+        s.node.status !== NodeStatus.UNREACHABLE &&
         !s.exReads
     );
 
     if (!candidate) {
-      this.logger.error(
-        "DB",
-        "Master offline and no slave available"
-      );
+      this.logger.error("DB", "Master unreachable and no slave available");
       return;
     }
 
+    this.failoverInProgress = true;
     let conn: PoolConnection | null = null;
 
     try {
@@ -147,12 +156,8 @@ export class DbManager implements IHealthService {
       await conn.query("RESET REPLICA ALL");
       await conn.query("SET GLOBAL read_only = 0");
     } catch (err) {
-      this.logger.error(
-        "DB",
-        `Failed to promote ${candidate.name}`,
-        err
-      );
-
+      this.logger.error("DB", `Failed to promote ${candidate.name}`, err);
+      this.failoverInProgress = false;
       return;
     } finally {
       if (conn) conn.release();
@@ -162,21 +167,17 @@ export class DbManager implements IHealthService {
 
     this.slaves = this.slaves
       .filter((s) => s.name !== candidate.name)
-      .concat({
-        ...oldMaster,
-        exReads: true,
-      });
+      .concat({ ...oldMaster, exReads: true });
 
-    this.master = {
-      ...candidate,
-    };
-
+    this.master = { ...candidate };
     this.slaveRrIndex = 0;
+    this.failoverInProgress = false;
 
-    this.logger.warn(
-      "DB",
-      `${candidate.name} promoted to master`
-    );
+    this.logger.warn("DB", `${candidate.name} promoted to master (auto failover)`);
+    await this.auditService?.log({
+      action: "AUTO_FAILOVER_PROMOTE",
+      details: `Auto failover: ${candidate.name} promoted to master. Previous master: ${oldMaster.name}`,
+    });
   }
 
   private async autoRestoreMaster(): Promise<void> {
@@ -187,7 +188,7 @@ export class DbManager implements IHealthService {
     const original = this.slaves.find(
       (s) =>
         s.orgMaster &&
-        s.node.status !== NodeStatus.OFFLINE
+        s.node.status !== NodeStatus.UNREACHABLE
     );
 
     if (!original) {
@@ -222,10 +223,11 @@ export class DbManager implements IHealthService {
 
     this.slaveRrIndex = 0;
 
-    this.logger.warn(
-      "DB",
-      `Original master restored: ${original.name}`
-    );
+    this.logger.warn("DB", `Original master restored: ${original.name}`);
+    await this.auditService?.log({
+      action: "AUTO_FAILOVER_RESTORE",
+      details: `Original master ${original.name} restored. Demoted: ${currentMaster.name}`,
+    });
   }
 
   public async runHealthCheck(): Promise<void> {
@@ -238,7 +240,7 @@ export class DbManager implements IHealthService {
     this.logger.info("DB", [this.master, ...this.slaves].map((n) => `${n.name}=${n.node.status}`).join(" | "));
   }
 
-  public async promoteSlave(idx: number): Promise<{ success: boolean; message: string }> {
+  public async promoteSlaveToMaster(idx: number): Promise<{ success: boolean; message: string }> {
     if (idx < 0 || idx >= this.slaves.length) {
       return {
         success: false,
@@ -248,13 +250,14 @@ export class DbManager implements IHealthService {
 
     const slave = this.slaves[idx];
 
-    if (slave.node.status === NodeStatus.OFFLINE) {
+    if (slave.node.status === NodeStatus.UNREACHABLE) {
       return {
         success: false,
-        message: "Slave is offline",
+        message: "Slave is unreachable",
       };
     }
 
+    this.failoverInProgress = true;
     let conn: PoolConnection | null = null;
 
     try {
@@ -264,12 +267,8 @@ export class DbManager implements IHealthService {
       await conn.query("RESET REPLICA ALL");
       await conn.query("SET GLOBAL read_only = 0");
     } catch (err) {
-      this.logger.error(
-        "DB",
-        "Promotion failed",
-        err
-      );
-
+      this.logger.error("DB", "Promotion failed", err);
+      this.failoverInProgress = false;
       return {
         success: false,
         message: "Promotion failed",
@@ -282,17 +281,12 @@ export class DbManager implements IHealthService {
 
     this.slaves = this.slaves
       .filter((_, i) => i !== idx)
-      .concat({
-        ...oldMaster,
-        exReads: true,
-      });
+      .concat({ ...oldMaster, exReads: true });
 
     this.master = slave;
+    this.failoverInProgress = false;
 
-    this.logger.warn(
-      "DB",
-      `${slave.name} promoted manually`
-    );
+    this.logger.warn("DB", `${slave.name} promoted manually`);
 
     return {
       success: true,
@@ -300,15 +294,15 @@ export class DbManager implements IHealthService {
     };
   }
 
-  public async init(): Promise<void> {
+  public async startHealthCheck(intervalMs: number): Promise<void> {
     await this.runHealthCheck();
-    this.healthTimer = setInterval(() => void this.runHealthCheck(), HEALTH_CHECK_INTERVAL_MS);
+    this.healthTimer = setInterval(() => void this.runHealthCheck(), intervalMs);
   }
 
   /** All writes (INSERT/UPDATE/DELETE) → Master only */
   public async getWriteConnection(): Promise<{ conn: PoolConnection; nodeName: string } | null> {
-    if (this.master.node.status === NodeStatus.OFFLINE) {
-      this.logger.error("DB", "Master is OFFLINE — write not possible");
+    if (this.master.node.status === NodeStatus.UNREACHABLE) {
+      this.logger.error("DB", "Master is UNREACHABLE — write not possible");
       return null;
     }
     try {
@@ -316,7 +310,7 @@ export class DbManager implements IHealthService {
       this.master.node.successfulWrites++;
       return { conn, nodeName: this.master.name };
     } catch (err) {
-      this.master.node.status = NodeStatus.OFFLINE;
+      this.master.node.status = NodeStatus.UNREACHABLE;
       this.master.node.failedWrites++;
       this.logger.error("DB", "Failed to connect to master", err);
       return null;
@@ -329,22 +323,22 @@ export class DbManager implements IHealthService {
     for (let i = 0; i < n; i++) {
       const idx = (this.slaveRrIndex + i) % n;
       const info = this.slaves[idx];
-      if (info.node.status === NodeStatus.OFFLINE || info.exReads) continue;
+      if (info.node.status === NodeStatus.UNREACHABLE || info.exReads) continue;
       try {
         const conn = await info.pool.getConnection();
         this.slaveRrIndex = (idx + 1) % n;
         info.node.successfulWrites++;
         return { conn, nodeName: info.name };
       } catch (err) {
-        info.node.status = NodeStatus.OFFLINE;
+        info.node.status = NodeStatus.UNREACHABLE;
         info.node.failedWrites++;
         this.logger.warn("DB", `Slave ${info.name} unreachable, trying next`);
       }
     }
     // Fallback to master
-    this.logger.warn("DB", "All slaves offline — falling back to master for read");
-    if (this.master.node.status === NodeStatus.OFFLINE) {
-      this.logger.error("DB", "Master also offline — read not possible");
+    this.logger.warn("DB", "All slaves unreachable — falling back to master for read");
+    if (this.master.node.status === NodeStatus.UNREACHABLE) {
+      this.logger.error("DB", "Master also unreachable — read not possible");
       return null;
     }
     try {
@@ -352,13 +346,13 @@ export class DbManager implements IHealthService {
       this.master.node.successfulWrites++;
       return { conn, nodeName: this.master.name };
     } catch (err) {
-      this.master.node.status = NodeStatus.OFFLINE;
+      this.master.node.status = NodeStatus.UNREACHABLE;
       this.logger.error("DB", "Failed to connect to master for fallback read", err);
       return null;
     }
   }
 
-  public getNodes(): DbNode[] { return [this.master.node, ...this.slaves.map((s) => s.node)]; }
+  public getHealthStatus(): DbNode[] { return [this.master.node, ...this.slaves.map((s) => s.node)]; }
   public getSlaveRrIndex(): number { return this.slaveRrIndex; }
   public stop(): void { if (this.healthTimer) clearInterval(this.healthTimer); }
 }

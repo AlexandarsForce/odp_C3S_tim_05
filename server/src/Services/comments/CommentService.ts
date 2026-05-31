@@ -49,10 +49,10 @@ export class CommentService implements ICommentService {
             const parent = await this.commentRepository.findCommentById(comment.parentId);
 
             // Roditelj mora postojati
-            if (parent.id === 0) return new CommentDto();
+            if (parent.id === 0) throw new Error("Roditeljski komentar ne postoji");
 
             // Bug fix: post_id child komentara mora biti isti kao i kod roditelja
-            if (parent.postId !== comment.postId) return new CommentDto();
+            if (parent.postId !== comment.postId) throw new Error("Odgovor mora biti na komentar iz iste objave");
 
             // Provjera dubine — maksimalno 2 nivoa
             if (parent.parentId !== null && parent.parentId !== undefined) {
