@@ -2,6 +2,9 @@ import { Request, Response, Router } from "express";
 import { ICommentService } from "../../Domain/services/comments/ICommentService";
 import { ICommentLikeService } from "../../Domain/services/comments/ICommentLikeService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
+import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
+import { UserRole } from "../../Domain/enums/UserRole";
+import { ICommunityMemberService } from "../../Domain/services/communities/ICommunityMemberService";
 import { CreateCommentDto } from "../../Domain/DTOs/comments/CreateCommentDto";
 import { UpdateCommentDto } from "../../Domain/DTOs/comments/UpdateCommentDto";
 import { CreateCommentLikeDto } from "../../Domain/DTOs/comments/CreateCommentLikeDto";
@@ -13,6 +16,7 @@ export class CommentController {
     public constructor(
         private readonly commentService: ICommentService,
         private readonly commentLikeService: ICommentLikeService,
+        private readonly communityMemberService: ICommunityMemberService,
     ) {
         this.router.get("/posts/:postId/comments", authenticate, this.getPostComments.bind(this));
         this.router.post("/posts/:postId/comments", authenticate, this.createComment.bind(this));
@@ -21,6 +25,8 @@ export class CommentController {
         this.router.delete("/comments/:id", authenticate, this.deleteComment.bind(this));
 
         this.router.get("/comments/:id/replies", authenticate, this.getCommentReplies.bind(this));
+
+        this.router.patch("/comments/:id/report", authenticate, this.reportComment.bind(this));
 
         this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this));
         this.router.delete("/comments/:id/like", authenticate, this.unlikeComment.bind(this));
@@ -33,7 +39,9 @@ export class CommentController {
         if (isNaN(postId)) { res.status(400).json({ success: false, message: "Invalid post ID" }); return; }
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
-        const result = await this.commentService.getPostComments(postId, page, limit);
+        const sortBy = req.query.sortBy === 'likesCount' ? 'likesCount' : 'createdAt';
+        const sortOrder = req.query.sortOrder === 'desc' ? 'desc' : 'asc';
+        const result = await this.commentService.getPostComments(postId, page, limit, sortBy, sortOrder);
         res.status(200).json({ success: true, data: result });
     }
 
@@ -89,8 +97,30 @@ export class CommentController {
         if (isNaN(parentId)) { res.status(400).json({ success: false, message: "Invalid comment ID" }); return; }
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
-        const result = await this.commentService.getCommentReplies(parentId, page, limit);
+        const sortBy = req.query.sortBy === 'likesCount' ? 'likesCount' : 'createdAt';
+        const sortOrder = req.query.sortOrder === 'desc' ? 'desc' : 'asc';
+        const result = await this.commentService.getCommentReplies(parentId, page, limit, sortBy, sortOrder);
         res.status(200).json({ success: true, data: result });
+    }
+
+    private async reportComment(req: Request, res: Response): Promise<void> {
+        const commentId = parseInt(req.params.id as string, 10);
+        if (isNaN(commentId)) { res.status(400).json({ success: false, message: "Invalid comment ID" }); return; }
+
+        // Admin može prijaviti bez provjere moderatorstva
+        if (req.user!.role === UserRole.ADMIN) {
+            const success = await this.commentService.reportComment(req.user!.id, commentId);
+            res.status(success ? 200 : 404).json({ success, message: success ? "Comment reported" : "Comment not found" });
+            return;
+        }
+
+        // Za moderatore — servis interno provjerava moderatorstvo
+        const success = await this.commentService.reportComment(req.user!.id, commentId);
+        if (!success) {
+            res.status(403).json({ success: false, message: "Only moderators or admins can report comments" });
+            return;
+        }
+        res.status(200).json({ success: true, message: "Comment reported" });
     }
 
     private async likeComment(req: Request, res: Response): Promise<void> {

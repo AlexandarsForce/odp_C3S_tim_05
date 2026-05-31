@@ -1,5 +1,5 @@
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { ICommentRepository } from "../../../Domain/repositories/comments/ICommentRepository";
+import { ICommentRepository, CommentSortBy, SortOrder } from "../../../Domain/repositories/comments/ICommentRepository";
 import { Comment } from "../../../Domain/models/Comment";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
@@ -18,7 +18,8 @@ export class CommentRepository implements ICommentRepository {
       r.parent_id ?? null,
       r.content,
       Boolean(r.deleted),
-      r.created_at ? new Date(r.created_at) : new Date()
+      r.created_at ? new Date(r.created_at) : new Date(),
+      Boolean(r.reported),
     );
   }
 
@@ -65,12 +66,16 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentsByPostId(postId: number): Promise<{ comments: Comment[], totalAmount: number }> {
+  async findCommentsByPostId(postId: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { comments: [], totalAmount: 0 };
+    const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const orderClause = sortBy === 'likesCount'
+      ? `(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) ${dir}`
+      : `c.created_at ${dir}`;
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments WHERE post_id = ? AND deleted = 0 ORDER BY created_at ASC`, 
+        `SELECT c.* FROM comments c WHERE c.post_id = ? AND c.deleted = 0 ORDER BY ${orderClause}`,
         [postId]
       );
       return {
@@ -80,8 +85,8 @@ export class CommentRepository implements ICommentRepository {
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentsByPostId failed", err);
       return { comments: [], totalAmount: 0 };
-    } finally { 
-      res.conn.release(); 
+    } finally {
+      res.conn.release();
     }
   }
 
@@ -105,12 +110,16 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentsByParentId(parentId: number): Promise<{ comments: Comment[], totalAmount: number }> {
+  async findCommentsByParentId(parentId: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { comments: [], totalAmount: 0 };
+    const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const orderClause = sortBy === 'likesCount'
+      ? `(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) ${dir}`
+      : `c.created_at ${dir}`;
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments WHERE parent_id = ? AND deleted = 0 ORDER BY created_at ASC`,
+        `SELECT c.* FROM comments c WHERE c.parent_id = ? AND c.deleted = 0 ORDER BY ${orderClause}`,
         [parentId]
       );
       return {
@@ -177,17 +186,17 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async deleteComment(commentId: number): Promise<boolean> {
+  async reportComment(commentId: number): Promise<boolean> {
     const res = await this.db.getWriteConnection();
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE comments SET deleted = 1 WHERE comment_id = ?`,
+        `UPDATE comments SET reported = TRUE WHERE comment_id = ?`,
         [commentId]
       );
       return result.affectedRows > 0;
     } catch (err) {
-      this.logger.error("CommentRepository", "deleteComment failed", err);
+      this.logger.error("CommentRepository", "reportComment failed", err);
       return false;
     } finally {
       res.conn.release();

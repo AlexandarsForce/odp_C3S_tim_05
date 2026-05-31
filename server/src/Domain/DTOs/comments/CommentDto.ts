@@ -10,5 +10,6 @@ export class CommentDto{
         public deleted: boolean = false,
         public createdAt: Date = new Date(),
         public mentions: MentionDto[] = [],
+        public reported: boolean = false,
     ) {}
 }
