@@ -9,6 +9,8 @@ export interface IUserService {
 
   updateUserRole(id: number, role: UserRole): Promise<boolean>;
   updateUser(id: number, updateDto: UpdateUserDto): Promise<boolean>;
+  adminUpdateUser(id: number, updateDto: UpdateUserDto): Promise<boolean>;
 
   deactivate(id: number): Promise<boolean>;
+  deleteUser(id: number): Promise<boolean>;
 }

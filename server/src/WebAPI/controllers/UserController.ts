@@ -20,6 +20,9 @@ export class UserController {
     this.router.put("/users/me",        authenticate, this.updateMe.bind(this));
     this.router.put("/users/:id/role", authenticate, authorize(UserRole.ADMIN), this.updateUserRole.bind(this));
 
+    this.router.put("/users/:id",           authenticate, authorize(UserRole.ADMIN), this.adminUpdateUser.bind(this));
+    this.router.delete("/users/:id",        authenticate, authorize(UserRole.ADMIN), this.deleteUser.bind(this));
+
     this.router.get("/users/:id/followers", authenticate, this.getFollowers.bind(this));
     this.router.get("/users/:id/following", authenticate, this.getFollowing.bind(this));
     this.router.post("/users/:id/follow", authenticate, this.followUser.bind(this));
@@ -60,6 +63,21 @@ export class UserController {
     const { username, fullname, email, bio, profilePicture, role } = req.body as UpdateUserDto;
     const ok = await this.userService.updateUser(req.user!.id, new UpdateUserDto(username, fullname, email, bio, profilePicture, role));
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User updated" : "Failed to update user" });
+  }
+
+  private async adminUpdateUser(req: Request, res: Response): Promise<void> {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid id" }); return; }
+    const { username, fullname, email, bio, profilePicture, role } = req.body as UpdateUserDto;
+    const ok = await this.userService.adminUpdateUser(id, new UpdateUserDto(username, fullname, email, bio, profilePicture, role));
+    res.status(ok ? 200 : 404).json({ success: ok, message: ok ? "User updated" : "User not found" });
+  }
+
+  private async deleteUser(req: Request, res: Response): Promise<void> {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid id" }); return; }
+    const ok = await this.userService.deleteUser(id);
+    res.status(ok ? 200 : 404).json({ success: ok, message: ok ? "User deleted" : "User not found" });
   }
 
   private async updateUserRole(req: Request, res: Response): Promise<void> {
