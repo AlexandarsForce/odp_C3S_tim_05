@@ -12,6 +12,8 @@ export interface ICommunityService {
     getCommunityByMemberId(memberId: number, page: number, limit: number): Promise<PaginatedListDto<CommunityDto>>;
 
     updateCommunity(userId: number, communityId: number, updateCommunityDto: UpdateCommunityDto): Promise<boolean>;
+    adminUpdateCommunity(adminId: number, communityId: number, updateCommunityDto: UpdateCommunityDto): Promise<boolean>;
 
     deleteCommunity(userId: number, communityId: number): Promise<boolean>;
+    adminDeleteCommunity(adminId: number, communityId: number): Promise<boolean>;
 }

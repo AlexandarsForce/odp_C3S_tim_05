@@ -26,6 +26,9 @@ export class CommunityController {
         this.router.put("/communities/:id", authenticate, this.updateCommunity.bind(this));
         this.router.delete("/communities/:id", authenticate, this.deleteCommunity.bind(this));
 
+        this.router.put("/communities/:id/admin", authenticate, authorize(UserRole.ADMIN), this.adminUpdateCommunity.bind(this));
+        this.router.delete("/communities/:id/admin", authenticate, authorize(UserRole.ADMIN), this.adminDeleteCommunity.bind(this));
+
         this.router.post("/communities/:id/join", authenticate, this.requestJoinCommunity.bind(this));
         this.router.delete("/communities/:id/leave", authenticate, this.leaveCommunity.bind(this));
         this.router.patch("/communities/:id/members/:userId/role", authenticate, this.updateCommunityMemberRole.bind(this));
@@ -97,6 +100,28 @@ export class CommunityController {
         if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
         const ok = await this.communityService.deleteCommunity(req.user!.id, id);
         if (!ok) { res.status(404).json({ success: false, message: "Community not found or unauthorized" }); return; }
+        res.status(200).json({ success: true, message: "Community deleted" });
+    }
+
+    private async adminUpdateCommunity(req: Request, res: Response): Promise<void> {
+        const id = parseInt(req.params.id as string, 10);
+        const { name, description, rules, avatarPicture, type } = req.body as UpdateCommunityDto;
+        if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const validationResult = validateUpdateCommunity(new UpdateCommunityDto(name, description, rules, avatarPicture, type));
+        if (!validationResult.valid) {
+            res.status(400).json({ success: false, message: validationResult.message });
+            return;
+        }
+        const ok = await this.communityService.adminUpdateCommunity(req.user!.id, id, new UpdateCommunityDto(name, description, rules, avatarPicture, type));
+        if (!ok) { res.status(404).json({ success: false, message: "Community not found" }); return; }
+        res.status(200).json({ success: true, message: "Community updated" });
+    }
+
+    private async adminDeleteCommunity(req: Request, res: Response): Promise<void> {
+        const id = parseInt(req.params.id as string, 10);
+        if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const ok = await this.communityService.adminDeleteCommunity(req.user!.id, id);
+        if (!ok) { res.status(404).json({ success: false, message: "Community not found" }); return; }
         res.status(200).json({ success: true, message: "Community deleted" });
     }
 

@@ -12,4 +12,5 @@ export interface IUserRepository {
   exists(id: number): Promise<boolean>;
 
   deactivate(id: number): Promise<boolean>;
+  delete(id: number): Promise<boolean>;
 }

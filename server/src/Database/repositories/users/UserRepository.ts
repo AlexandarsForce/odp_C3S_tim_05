@@ -108,6 +108,18 @@ export class UserRepository implements IUserRepository {
     } finally { res.conn.release(); }
   }
 
+  async delete(id: number): Promise<boolean> {
+    const res = await this.db.getWriteConnection();
+    if (!res) return false;
+    try {
+      const [result] = await res.conn.execute<ResultSetHeader>(`DELETE FROM users WHERE user_id = ?`, [id]);
+      return result.affectedRows > 0;
+    } catch (err) {
+      this.logger.error("UserRepository", "delete failed", err);
+      return false;
+    } finally { res.conn.release(); }
+  }
+
   async exists(id: number): Promise<boolean> {
     const res = await this.db.getReadConnection();
     if (!res) return false;

@@ -67,9 +67,26 @@ export class CommunityService implements ICommunityService {
         return success;
     }
 
+    async adminUpdateCommunity(adminId: number, communityId: number, updateCommunityDto: UpdateCommunityDto): Promise<boolean> {
+        const existing = await this.communityRepository.findCommunityById(communityId);
+        if (existing.id === 0) return false;
+        const updated = new Community(communityId, existing.ownerId, updateCommunityDto.name, updateCommunityDto.description, updateCommunityDto.rules, updateCommunityDto.avatarPicture, updateCommunityDto.type);
+        const success = await this.communityRepository.updateCommunity(communityId, updated);
+        if (success) await this.auditService.log({ userId: adminId, action: "COMMUNITY_UPDATED", details: "communities"});
+        return success;
+    }
+
     async deleteCommunity(userId: number, communityId: number): Promise<boolean> {
         const success = await this.communityRepository.deleteCommunity(communityId);
         if (success) await this.auditService.log({ userId, action: "COMMUNITY_DELETED", details: "communities"});
+        return success;
+    }
+
+    async adminDeleteCommunity(adminId: number, communityId: number): Promise<boolean> {
+        const existing = await this.communityRepository.findCommunityById(communityId);
+        if (existing.id === 0) return false;
+        const success = await this.communityRepository.deleteCommunity(communityId);
+        if (success) await this.auditService.log({ userId: adminId, action: "COMMUNITY_DELETED", details: "communities"});
         return success;
     }
 

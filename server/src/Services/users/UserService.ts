@@ -50,7 +50,30 @@ export class UserService implements IUserService {
     return this.userRepo.update(updatedUser);
   }
 
+  async adminUpdateUser(id: number, updateDto: UpdateUserDto): Promise<boolean> {
+    const existingUser = await this.userRepo.findById(id);
+    if (existingUser.id === 0) return false;
+    const updatedUser = new User(
+      existingUser.id,
+      updateDto.username,
+      updateDto.fullname,
+      updateDto.email,
+      existingUser.passwordHash,
+      updateDto.bio,
+      updateDto.profilePicture,
+      updateDto.role,
+      existingUser.createdAt,
+      new Date(),
+      existingUser.isActive
+    );
+    return this.userRepo.update(updatedUser);
+  }
+
   async deactivate(id: number): Promise<boolean> {
     return this.userRepo.deactivate(id);
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.userRepo.delete(id);
   }
 }
