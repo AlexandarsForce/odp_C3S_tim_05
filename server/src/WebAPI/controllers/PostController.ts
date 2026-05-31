@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import { IPostService } from "../../Domain/services/posts/IPostService";
 import { IPostLikeService } from "../../Domain/services/posts/IPostLikeService";
 import { IPostTagService } from "../../Domain/services/posts/IPostTagService";
+import { ICommentService } from "../../Domain/services/comments/ICommentService";
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
 import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
@@ -17,7 +18,8 @@ export class PostController {
         private readonly postService: IPostService,
         private readonly postLikeService: IPostLikeService,
         private readonly postTagService: IPostTagService,
-        private readonly auditService: IAuditService
+        private readonly auditService: IAuditService,
+        private readonly commentService: ICommentService
     ) {
 
         this.router.get("/posts/community/:communityId", authenticate, this.getAllPosts.bind(this));
@@ -40,7 +42,16 @@ export class PostController {
         const communityId = parseInt(req.params.communityId as string, 10);
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
-        const result = await this.postService.getAllPosts(communityId, page, limit);
+        const sortBy = req.query.sortBy === 'title' ? 'title' : 'createdAt';
+        const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
+        const tagId = req.query.tagId ? parseInt(String(req.query.tagId), 10) : undefined;
+        const authorId = req.query.authorId ? parseInt(String(req.query.authorId), 10) : undefined;
+        const result = await this.postService.getAllPosts(communityId, page, limit, {
+            sortBy: sortBy as 'createdAt' | 'title',
+            sortOrder: sortOrder as 'asc' | 'desc',
+            tagId,
+            authorId,
+        });
         res.status(200).json({ success: true, data: result });
     }
 
@@ -71,8 +82,9 @@ export class PostController {
             res.status(404).json({ success: false, message: "Post not found" });
             return;
         }
-        const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, page, limit);
-        res.status(200).json({ success: true, data: post, likes: postLikes });
+        const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        const comments = await this.commentService.getPostComments(postId, page, limit);
+        res.status(200).json({ success: true, data: post, likesCount: postLikes.total, comments });
     }
 
     private async updatePost(req: Request, res: Response): Promise<void> {
@@ -85,7 +97,7 @@ export class PostController {
         }
         const success = await this.postService.updatePost(req.user!.id, postId, new UpdatePostDto(authorId, communityId, title, content, mediaAttachment));
         if (!success) {
-            res.status(404).json({ success: false, message: "Post not found" });
+            res.status(403).json({ success: false, message: "Post not found or insufficient permissions" });
             return;
         }
         res.status(200).json({ success: true, message: "Post updated successfully" });
@@ -95,7 +107,7 @@ export class PostController {
         const postId = parseInt(req.params.id as string, 10);
         const success = await this.postService.deletePost(req.user!.id, postId);
         if (!success) {
-            res.status(404).json({ success: false, message: "Post not found" });
+            res.status(403).json({ success: false, message: "Post not found or insufficient permissions" });
             return;
         }
         res.status(200).json({ success: true, message: "Post deleted successfully" });
@@ -103,9 +115,15 @@ export class PostController {
 
     private async likePost(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
-        const success = await this.postLikeService.likePost(req.user!.id, postId, new CreatePostLikeDto(1));
-        if (!success) {
-            res.status(400).json({ success: false, message: "Unable to like post" });
+        const result = await this.postLikeService.likePost(req.user!.id, postId, new CreatePostLikeDto(1));
+        if (!result.success) {
+            if (result.reason === 'DUPLICATE') {
+                res.status(409).json({ success: false, message: "You have already liked this post" });
+            } else if (result.reason === 'OWN_POST') {
+                res.status(403).json({ success: false, message: "You cannot like your own post" });
+            } else {
+                res.status(400).json({ success: false, message: "Unable to like post" });
+            }
             return;
         }
         res.status(200).json({ success: true, message: "Post liked successfully" });

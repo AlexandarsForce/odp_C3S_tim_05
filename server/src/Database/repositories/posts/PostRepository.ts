@@ -1,5 +1,5 @@
 import { RowDataPacket, ResultSetHeader } from "mysql2";
-import { IPostRepository } from "../../../Domain/repositories/posts/IPostRepository";
+import { IPostRepository, PostFilters } from "../../../Domain/repositories/posts/IPostRepository";
 import { Post } from "../../../Domain/models/Post";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
@@ -57,20 +57,84 @@ export class PostRepository implements IPostRepository {
         finally { res.conn.release(); }
     }
 
-    async findPostsByCommunityId(communityId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
+    async findPostsByCommunityId(communityId: number, page: number, limit: number, filters?: PostFilters): Promise<{ posts: Post[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { posts: [], totalAmount: 0 };
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
+        const sortCol = filters?.sortBy === 'title' ? 'title' : 'created_at';
+        const sortDir = filters?.sortOrder === 'asc' ? 'ASC' : 'DESC';
         try {
-                type CountRow = RowDataPacket & { total: number | string };
-                const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts WHERE community_id = ?`, [communityId]);
+            type CountRow = RowDataPacket & { total: number | string };
+            if (filters?.tagId) {
+                const countParams: (number)[] = [communityId, filters.tagId];
+                let countWhere = `p.community_id = ? AND pt.tag_id = ?`;
+                if (filters.authorId) { countWhere += ` AND p.author_id = ?`; countParams.push(filters.authorId); }
+                const [countRows] = await res.conn.execute<RowDataPacket[]>(
+                    `SELECT COUNT(DISTINCT p.post_id) as total FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id WHERE ${countWhere}`,
+                    countParams
+                );
                 const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-                const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM posts WHERE community_id = ? LIMIT ${lim} OFFSET ${offset}`, [communityId]);
+
+                const dataParams: (number)[] = [communityId, filters.tagId];
+                let dataWhere = `p.community_id = ? AND pt.tag_id = ?`;
+                if (filters.authorId) { dataWhere += ` AND p.author_id = ?`; dataParams.push(filters.authorId); }
+                const [rows] = await res.conn.execute<RowDataPacket[]>(
+                    `SELECT DISTINCT p.* FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id WHERE ${dataWhere} ORDER BY p.${sortCol} ${sortDir} LIMIT ${lim} OFFSET ${offset}`,
+                    dataParams
+                );
                 return { posts: rows.map(r => this.mapPost(r)), totalAmount };
+            } else {
+                const countParams: (number)[] = [communityId];
+                let countWhere = `community_id = ?`;
+                if (filters?.authorId) { countWhere += ` AND author_id = ?`; countParams.push(filters.authorId); }
+                const [countRows] = await res.conn.execute<RowDataPacket[]>(
+                    `SELECT COUNT(*) as total FROM posts WHERE ${countWhere}`,
+                    countParams
+                );
+                const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+
+                const dataParams: (number)[] = [communityId];
+                let dataWhere = `community_id = ?`;
+                if (filters?.authorId) { dataWhere += ` AND author_id = ?`; dataParams.push(filters.authorId); }
+                const [rows] = await res.conn.execute<RowDataPacket[]>(
+                    `SELECT * FROM posts WHERE ${dataWhere} ORDER BY ${sortCol} ${sortDir} LIMIT ${lim} OFFSET ${offset}`,
+                    dataParams
+                );
+                return { posts: rows.map(r => this.mapPost(r)), totalAmount };
+            }
         }
         catch (err) {
             this.logger.error("PostRepository", "findPostsByCommunityId failed", err);
+            return { posts: [], totalAmount: 0 };
+        }
+        finally { res.conn.release(); }
+    }
+
+    async findFeedPosts(userId: number, page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
+        const res = await this.db.getReadConnection();
+        if (!res) return { posts: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
+        const feedWhere = `(
+            p.community_id IN (SELECT community_id FROM community_members WHERE user_id = ? AND status = 'active')
+            OR p.author_id IN (SELECT following_id FROM user_follows WHERE follower_id = ?)
+        )`;
+        try {
+            type CountRow = RowDataPacket & { total: number | string };
+            const [countRows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT COUNT(DISTINCT p.post_id) as total FROM posts p WHERE ${feedWhere}`,
+                [userId, userId]
+            );
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT DISTINCT p.* FROM posts p WHERE ${feedWhere} ORDER BY p.created_at DESC LIMIT ${lim} OFFSET ${offset}`,
+                [userId, userId]
+            );
+            return { posts: rows.map(r => this.mapPost(r)), totalAmount };
+        }
+        catch (err) {
+            this.logger.error("PostRepository", "findFeedPosts failed", err);
             return { posts: [], totalAmount: 0 };
         }
         finally { res.conn.release(); }
