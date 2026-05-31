@@ -5,12 +5,14 @@ import { CommunityMemberDto } from '../../DTOs/communities/CommunityMemberDto';
 
 export interface ICommunityMemberService {
     requestJoinCommunity(userId: number, communityId: number): Promise<boolean>;
-    responseJoinCommunity(userId: number, communityId: number, response: ResponseCommunityDto ): Promise<boolean>;
+    responseJoinCommunity(actorId: number, communityId: number, targetUserId: number, response: ResponseCommunityDto): Promise<boolean>;
+
+    isModerator(userId: number, communityId: number): Promise<boolean>;
 
     getCommunityMembers(userId: number, communityId: number, page: number, limit: number): Promise<PaginatedListDto<CommunityMemberDto>>;
-    
-    updateCommunityMemberRole(userId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto ): Promise<boolean>;
+
+    updateCommunityMemberRole(actorId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<boolean>;
 
     removeCommunityMember(userId: number, memberId: number, communityId: number): Promise<boolean>;
-    leaveCommunity(userId: number, communityId: number ): Promise<boolean>;
+    leaveCommunity(userId: number, communityId: number): Promise<boolean>;
 }

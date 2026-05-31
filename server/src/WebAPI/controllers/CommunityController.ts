@@ -85,13 +85,15 @@ export class CommunityController {
         const id = parseInt(req.params.id as string, 10);
         const { name, description, rules, avatarPicture,type } = req.body as UpdateCommunityDto;
         if (isNaN(id)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const isMod = req.user!.role === UserRole.ADMIN || await this.communityMemberService.isModerator(req.user!.id, id);
+        if (!isMod) { res.status(403).json({ success: false, message: "Only moderators or admins can update a community" }); return; }
         const validationResult = validateUpdateCommunity(new UpdateCommunityDto(name, description, rules, avatarPicture,type));
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
         const ok = await this.communityService.updateCommunity(req.user!.id, id, new UpdateCommunityDto(name, description, rules, avatarPicture,type));
-        if (!ok) { res.status(404).json({ success: false, message: "Community not found or unauthorized" }); return; }
+        if (!ok) { res.status(404).json({ success: false, message: "Community not found" }); return; }
         res.status(200).json({ success: true, message: "Community updated" });
     }
 
@@ -146,18 +148,24 @@ export class CommunityController {
         const memberId = parseInt(req.params.userId as string, 10);
         const { role } = req.body as UpdateCommunityMemberRoleDto;
         if (isNaN(communityId) || isNaN(memberId)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const actorRole = req.user!.role;
+        const isMod = actorRole === UserRole.ADMIN || await this.communityMemberService.isModerator(req.user!.id, communityId);
+        if (!isMod) { res.status(403).json({ success: false, message: "Only moderators or admins can change member roles" }); return; }
         const ok = await this.communityMemberService.updateCommunityMemberRole(req.user!.id, memberId, communityId, new UpdateCommunityMemberRoleDto(role));
-        if (!ok) { res.status(404).json({ success: false, message: "Community or member not found, or unauthorized" }); return; }
+        if (!ok) { res.status(404).json({ success: false, message: "Community or member not found" }); return; }
         res.status(200).json({ success: true, message: "Member role updated" });
     }
 
     private async responseJoinCommunity(req: Request, res: Response): Promise<void> {
         const communityId = parseInt(req.params.id as string, 10);
-        const memberId = parseInt(req.params.userId as string, 10);
+        const targetUserId = parseInt(req.params.userId as string, 10);
         const { accepted } = req.body as ResponseCommunityDto;
-        if (isNaN(communityId) || isNaN(memberId)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
-        const ok = await this.communityMemberService.responseJoinCommunity(req.user!.id, communityId, new ResponseCommunityDto(accepted));
-        if (!ok) { res.status(404).json({ success: false, message: "Community or member not found, or unauthorized" }); return; }
+        if (isNaN(communityId) || isNaN(targetUserId)) { res.status(400).json({ success: false, message: "Invalid ID" }); return; }
+        const actorRole = req.user!.role;
+        const isMod = actorRole === UserRole.ADMIN || await this.communityMemberService.isModerator(req.user!.id, communityId);
+        if (!isMod) { res.status(403).json({ success: false, message: "Only moderators or admins can respond to join requests" }); return; }
+        const ok = await this.communityMemberService.responseJoinCommunity(req.user!.id, communityId, targetUserId, new ResponseCommunityDto(accepted));
+        if (!ok) { res.status(404).json({ success: false, message: "Pending request not found for that user" }); return; }
         res.status(200).json({ success: true, message: accepted ? "Join request accepted" : "Join request rejected" });
     }
 
