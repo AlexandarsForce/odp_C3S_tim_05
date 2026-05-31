@@ -25,7 +25,10 @@ export class PostService implements IPostService {
             post.content,
             post.mediaAttachment,
             post.deleted,
-            post.createdAt
+            post.createdAt,
+            post.likesCount,
+            post.commentsCount,
+            post.tagIds,
         );
     }
 
@@ -40,6 +43,11 @@ export class PostService implements IPostService {
     async getAllPosts(communityId: number, page: number, limit: number, filters?: PostQueryFilters): Promise<PaginatedListDto<PostDto>> {
         const { posts, totalAmount } = await this.postRepository.findPostsByCommunityId(communityId, page, limit, filters);
         return new PaginatedListDto(posts.map((p) => this.toDto(p)), totalAmount, page, limit);
+    }
+
+    async getPostsByAuthor(authorId: number, page: number, limit: number): Promise<PaginatedListDto<PostDto>> {
+        const { posts, totalAmount } = await this.postRepository.findPostsByAuthorId(authorId, page, limit);
+        return new PaginatedListDto(posts.map(p => this.toDto(p)), totalAmount, page, limit);
     }
 
     async getFeed(userId: number, page: number, limit: number): Promise<PaginatedListDto<PostDto>> {
@@ -66,6 +74,19 @@ export class PostService implements IPostService {
         const updatedPost = new Post(postId, existingPost.authorId, existingPost.communityId, post.title, post.content, post.mediaAttachment);
         const success = await this.postRepository.updatePost(postId, updatedPost);
         if (success) await this.auditService.log({ userId, action: "POST_UPDATED", details: "posts"});
+        return success;
+    }
+
+    async adminGetAllPosts(page: number, limit: number): Promise<PaginatedListDto<PostDto>> {
+        const { posts, totalAmount } = await this.postRepository.findAllPosts(page, limit);
+        return new PaginatedListDto(posts.map(p => this.toDto(p)), totalAmount, page, limit);
+    }
+
+    async adminDeletePost(postId: number): Promise<boolean> {
+        const existing = await this.postRepository.findPostById(postId);
+        if (existing.id === 0) return false;
+        const success = await this.postRepository.deletePost(postId);
+        if (success) await this.auditService.log({ userId: 0, action: "ADMIN_POST_DELETED", details: `postId: ${postId}` });
         return success;
     }
 

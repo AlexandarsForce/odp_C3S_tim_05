@@ -4,8 +4,10 @@ import { CreateCommentDto } from "../../Domain/DTOs/comments/CreateCommentDto";
 import { UpdateCommentDto } from "../../Domain/DTOs/comments/UpdateCommentDto";
 import { ICommentService } from "../../Domain/services/comments/ICommentService";
 import { ICommentRepository } from "../../Domain/repositories/comments/ICommentRepository";
+import { IUserRepository } from "../../Domain/repositories/users/IUserRepository";
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { Comment } from "../../Domain/models/Comment";
+import { parseMentions } from "../../Domain/utils/parseMentions";
 
 const SOFT_DELETED_CONTENT = "[deleted]";
 const MAX_DEPTH = 2; // nivoi 0, 1, 2 — dublje je zabranjeno
@@ -13,10 +15,14 @@ const MAX_DEPTH = 2; // nivoi 0, 1, 2 — dublje je zabranjeno
 export class CommentService implements ICommentService {
     constructor(
         private commentRepository: ICommentRepository,
-        private auditService: IAuditService
+        private auditService: IAuditService,
+        private userRepository: IUserRepository,
     ) {}
 
-    toCommentDto(comment: Comment): CommentDto {
+    async toCommentDto(comment: Comment): Promise<CommentDto> {
+        const mentions = comment.deleted
+            ? []
+            : await parseMentions(comment.content, this.userRepository);
         return {
             id: comment.id,
             postId: comment.postId,
@@ -25,6 +31,7 @@ export class CommentService implements ICommentService {
             parentId: comment.parentId,
             deleted: comment.deleted,
             createdAt: comment.createdAt,
+            mentions,
         };
     }
 
@@ -40,12 +47,9 @@ export class CommentService implements ICommentService {
             if (parent.postId !== comment.postId) return new CommentDto();
 
             // Provjera dubine — maksimalno 2 nivoa
-            // Roditelj je nivo 1 ili viši samo ako ima svog roditelja
             if (parent.parentId !== null && parent.parentId !== undefined) {
-                // Roditelj je najmanje nivo 1 — provjeravamo da li je tačno nivo 1
                 const grandparent = await this.commentRepository.findCommentById(parent.parentId);
-                if (grandparent.id === 0) return new CommentDto(); // integritetska greška
-                // Ako i djed ima roditelja, novi komentar bio bi nivo 3+ — zabranjeno
+                if (grandparent.id === 0) return new CommentDto();
                 if (grandparent.parentId !== null && grandparent.parentId !== undefined) {
                     return new CommentDto();
                 }
@@ -68,12 +72,21 @@ export class CommentService implements ICommentService {
 
     async getPostComments(postId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>> {
         const { comments, totalAmount } = await this.commentRepository.findCommentsByPostId(postId);
-        return new PaginatedListDto(comments.map(c => this.toCommentDto(c)), totalAmount, page, limit);
+        const dtos = await Promise.all(comments.map(c => this.toCommentDto(c)));
+        return new PaginatedListDto(dtos, totalAmount, page, limit);
+    }
+
+    async getUserComments(authorId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>> {
+        const { comments, totalAmount } = await this.commentRepository.findCommentsByAuthorId(authorId);
+        const paged = comments.slice((page - 1) * limit, page * limit);
+        const dtos = await Promise.all(paged.map(c => this.toCommentDto(c)));
+        return new PaginatedListDto(dtos, totalAmount, page, limit);
     }
 
     async getCommentReplies(parentId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>> {
         const { comments, totalAmount } = await this.commentRepository.findCommentsByParentId(parentId);
-        return new PaginatedListDto(comments.map(c => this.toCommentDto(c)), totalAmount, page, limit);
+        const dtos = await Promise.all(comments.map(c => this.toCommentDto(c)));
+        return new PaginatedListDto(dtos, totalAmount, page, limit);
     }
 
     async updateComment(userId: number, commentId: number, comment: UpdateCommentDto): Promise<boolean> {
@@ -104,10 +117,8 @@ export class CommentService implements ICommentService {
         let success: boolean;
 
         if (hasChildren) {
-            // Logičko brisanje: sadržaj se zamjenjuje sa "[deleted]", komentar ostaje vidljiv
             success = await this.commentRepository.softDeleteComment(commentId);
         } else {
-            // Fizičko brisanje: postavlja deleted = 1, komentar nestaje iz upita
             success = await this.commentRepository.deleteComment(commentId);
         }
 

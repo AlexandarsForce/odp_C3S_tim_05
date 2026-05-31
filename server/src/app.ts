@@ -64,7 +64,7 @@ const communityMemberService = new CommunityMemberService(communityMemberRepo, a
 const postService = new PostService(postRepo, auditService, communityMemberRepo);
 const postTagService = new PostTagService(postTagRepo, auditService);
 const postLikeService = new PostLikeService(postLikeRepo, auditService, postRepo);
-const commentService = new CommentService(commentRepo, auditService);
+const commentService = new CommentService(commentRepo, auditService, userRepo);
 const commentLikeService = new CommentLikeService(commentLikeRepo, auditService);
 const tagService = new TagService(tagRepo, auditService);
 
@@ -74,7 +74,7 @@ app.use(cors({ origin: process.env.CLIENT_URL ?? "*" }));
 app.use(express.json());
 
 app.use("/api/v1", new AuthController(authService, auditService).getRouter());
-app.use("/api/v1", new UserController(userService, userFollowerService).getRouter());
+app.use("/api/v1", new UserController(userService, userFollowerService, postService, commentService).getRouter());
 app.use("/api/v1", new CommunityController(communityService, communityMemberService, auditService).getRouter());
 app.use("/api/v1", new PostController(postService, postLikeService, postTagService, auditService, commentService).getRouter());
 app.use("/api/v1", new CommentController(commentService, commentLikeService).getRouter());

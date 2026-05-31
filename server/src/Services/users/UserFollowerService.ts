@@ -46,4 +46,11 @@ export class UserFollowerService implements IUserFollowerService {
         if (result) await this.auditService.log({ userId, action: "USER_UNFOLLOWED", details: `Unfollowed user ${unfollowUserId}` });
         return result;
     }
+
+    async removeFollower(userId: number, followerToRemoveId: number): Promise<boolean> {
+        // userId je "following" strana — uklanja followerToRemoveId iz sopstvene liste pratilaca
+        const result = await this.userFollowerRepository.deleteFollower(userId, followerToRemoveId);
+        if (result) await this.auditService.log({ userId, action: "FOLLOWER_REMOVED", details: `Removed follower ${followerToRemoveId}` });
+        return result;
+    }
 }

@@ -8,6 +8,7 @@ import NotFoundPage from "./pages/not_found/NotFoundPage";
 import UserDashboard from "./pages/user/UserDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersPage from "./pages/admin/UsersPage";
+import PostDetailPage from "./pages/posts/PostDetailPage";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
 
       {/* User routes */}
       <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><UserDashboard /></ProtectedRoute>} />
+      <Route path="/posts/:id"  element={<ProtectedRoute requiredRole="user"><PostDetailPage /></ProtectedRoute>} />
 
       {/* Admin routes */}
       <Route path="/admin"       element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />

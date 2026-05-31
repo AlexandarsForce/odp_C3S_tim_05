@@ -1,3 +1,5 @@
+import { MentionDto } from "./MentionDto";
+
 export class CommentDto{
     public constructor(
         public id: number = 0,
@@ -7,5 +9,6 @@ export class CommentDto{
         public content: string = "",
         public deleted: boolean = false,
         public createdAt: Date = new Date(),
+        public mentions: MentionDto[] = [],
     ) {}
 }
