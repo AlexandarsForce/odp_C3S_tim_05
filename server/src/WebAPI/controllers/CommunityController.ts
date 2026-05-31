@@ -66,8 +66,13 @@ export class CommunityController {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
-        res.status(201).json({ success: true, data: community });
+        try {
+            const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
+            res.status(201).json({ success: true, data: community });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Unable to create community";
+            res.status(409).json({ success: false, message });
+        }
     }
 
     private async getCommunityDetails(req: Request, res: Response): Promise<void> {
@@ -151,9 +156,14 @@ export class CommunityController {
         const actorRole = req.user!.role;
         const isMod = actorRole === UserRole.ADMIN || await this.communityMemberService.isModerator(req.user!.id, communityId);
         if (!isMod) { res.status(403).json({ success: false, message: "Only moderators or admins can change member roles" }); return; }
-        const ok = await this.communityMemberService.updateCommunityMemberRole(req.user!.id, memberId, communityId, new UpdateCommunityMemberRoleDto(role));
-        if (!ok) { res.status(404).json({ success: false, message: "Community or member not found" }); return; }
-        res.status(200).json({ success: true, message: "Member role updated" });
+        try {
+            const ok = await this.communityMemberService.updateCommunityMemberRole(req.user!.id, memberId, communityId, new UpdateCommunityMemberRoleDto(role));
+            if (!ok) { res.status(404).json({ success: false, message: "Community or member not found" }); return; }
+            res.status(200).json({ success: true, message: "Member role updated" });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Unable to update member role";
+            res.status(400).json({ success: false, message });
+        }
     }
 
     private async responseJoinCommunity(req: Request, res: Response): Promise<void> {

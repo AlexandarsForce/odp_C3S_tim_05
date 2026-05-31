@@ -25,7 +25,7 @@ export class HealthController {
     }
 
     private async getAllNodes(req: Request, res: Response): Promise<void> {
-        const result = this.healthService.getNodes();
+        const result = this.healthService.getHealthStatus();
         res.status(200).json({ success: true, data: result });
     }
 
@@ -33,7 +33,7 @@ export class HealthController {
         const { idx } = req.body as { idx?: number };
         if (idx === undefined) { res.status(400).json({ success: false, message: "Missing idx in request body" }); return; }
         if (idx !== 0 && idx !== 1) { res.status(400).json({ success: false, message: "Invalid idx value, must be 0 or 1" }); return; }
-        const result = await this.healthService.promoteSlave(idx as 0 | 1);
+        const result = await this.healthService.promoteSlaveToMaster(idx as 0 | 1);
         if(!result.success) { res.status(500).json({ success: false, message: result.message }); return; }
         await this.auditService.log({
             userId: req.user?.id,

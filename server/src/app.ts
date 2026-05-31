@@ -55,7 +55,8 @@ const commentLikeRepo = new CommentLikeRepository(db, logger);
 const userFollowerRepo = new UserFollowerRepository(db, logger);
 const tagRepo = new TagRepository(db, logger);
 // Services
-const auditService   = new AuditService(auditRepo);
+const auditService = new AuditService(auditRepo);
+db.setAuditService(auditService);
 const authService   = new AuthService(userRepo);
 const userService   = new UserService(userRepo);
 const userFollowerService = new UserFollowerService(userFollowerRepo, auditService);
@@ -72,6 +73,17 @@ const tagService = new TagService(tagRepo, auditService);
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_URL ?? "*" }));
 app.use(express.json());
+
+// 503 tokom failovera — blokira write operacije dok master nije dostupan
+app.use((req, _res, next) => {
+  const writeMethods = ["POST", "PUT", "DELETE", "PATCH"];
+  const isHealthRoute = req.path.startsWith("/api/v1/health");
+  if (writeMethods.includes(req.method) && !isHealthRoute && !db.isWriteAvailable()) {
+    _res.status(503).json({ success: false, message: "Servis privremeno nedostupan — failover u toku" });
+    return;
+  }
+  next();
+});
 
 app.use("/api/v1", new AuthController(authService, auditService).getRouter());
 app.use("/api/v1", new UserController(userService, userFollowerService, postService, commentService).getRouter());

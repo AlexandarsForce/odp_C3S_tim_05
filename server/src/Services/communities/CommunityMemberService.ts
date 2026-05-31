@@ -60,6 +60,15 @@ export class CommunityMemberService implements ICommunityMemberService {
     async updateCommunityMemberRole(actorId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<boolean> {
         const communityMember = await this.communityRepository.findCommunityMemberById(communityId, memberId);
         if (communityMember.userId === 0) return false;
+
+        // Zaštita: ne dozvoljavamo degradaciju ako je jedini moderator
+        if (newRole.role === CommunityMemberRole.MEMBER && communityMember.role === CommunityMemberRole.MODERATOR) {
+            const { totalAmount } = await this.communityRepository.findCommunityMemberByRole(communityId, CommunityMemberRole.MODERATOR, 1, 1);
+            if (totalAmount <= 1) {
+                throw new Error("Zajednica mora imati bar jednog moderatora");
+            }
+        }
+
         communityMember.role = newRole.role;
         const result = await this.communityRepository.updateCommunityMember(communityId, communityMember);
         if (result) {
