@@ -12,4 +12,5 @@ export interface IUserFollowerService {
     getFollowing(userId: number, page: number, limit: number): Promise<PaginatedListDto<UserFollowerDto>>;
 
     unfollowUser(followerId: number, followedId: number): Promise<boolean>;
+    removeFollower(userId: number, followerToRemoveId: number): Promise<boolean>;
 }

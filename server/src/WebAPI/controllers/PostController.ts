@@ -6,11 +6,13 @@ import { ICommentService } from "../../Domain/services/comments/ICommentService"
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
 import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
+import { UserRole } from "../../Domain/enums/UserRole";
 import { CreatePostDto } from "../../Domain/DTOs/posts/CreatePostDto";
 import { CreatePostTagDto } from "../../Domain/DTOs/posts/CreatePostTagDto";
 import { CreatePostLikeDto } from "../../Domain/DTOs/posts/CreatePostLikeDto";
 import { UpdatePostDto } from "../../Domain/DTOs/posts/UpdatePostDto";
 import { validateCreatePost, validateUpdatePost } from "../validators/posts/ValidatePost";
+import { likesSSE } from "../../Services/posts/LikesSSEBroadcaster";
 
 export class PostController {
     private readonly router = Router();
@@ -24,11 +26,14 @@ export class PostController {
 
         this.router.get("/posts/community/:communityId", authenticate, this.getAllPosts.bind(this));
         this.router.get("/posts/feed", authenticate, this.getFeed.bind(this));
+        this.router.get("/posts/admin/all", authenticate, authorize(UserRole.ADMIN), this.adminGetAllPosts.bind(this));
+        this.router.delete("/posts/admin/:id", authenticate, authorize(UserRole.ADMIN), this.adminDeletePost.bind(this));
         this.router.post("/posts",authenticate, this.createPost.bind(this));
         this.router.get("/posts/:id", authenticate, this.getPostDetails.bind(this));
         this.router.put("/posts/:id", authenticate, this.updatePost.bind(this));
         this.router.delete("/posts/:id", authenticate, this.deletePost.bind(this));
 
+        this.router.get("/posts/:id/likes/stream", this.streamLikes.bind(this));
         this.router.post("/posts/:id/like", authenticate, this.likePost.bind(this));
         this.router.delete("/posts/:id/like", authenticate, this.unlikePost.bind(this));
 
@@ -42,12 +47,14 @@ export class PostController {
         const communityId = parseInt(req.params.communityId as string, 10);
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
-        const sortBy = req.query.sortBy === 'title' ? 'title' : 'createdAt';
+        const validSortBy = ['createdAt', 'title', 'likesCount', 'commentsCount'];
+        const sortByRaw = String(req.query.sortBy ?? 'createdAt');
+        const sortBy = validSortBy.includes(sortByRaw) ? sortByRaw : 'createdAt';
         const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
         const tagId = req.query.tagId ? parseInt(String(req.query.tagId), 10) : undefined;
         const authorId = req.query.authorId ? parseInt(String(req.query.authorId), 10) : undefined;
         const result = await this.postService.getAllPosts(communityId, page, limit, {
-            sortBy: sortBy as 'createdAt' | 'title',
+            sortBy: sortBy as 'createdAt' | 'title' | 'likesCount' | 'commentsCount',
             sortOrder: sortOrder as 'asc' | 'desc',
             tagId,
             authorId,
@@ -113,6 +120,30 @@ export class PostController {
         res.status(200).json({ success: true, message: "Post deleted successfully" });
     }
 
+    private async adminGetAllPosts(req: Request, res: Response): Promise<void> {
+        const page = parseInt(String(req.query.page ?? "1"), 10);
+        const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
+        const result = await this.postService.adminGetAllPosts(page, limit);
+        res.status(200).json({ success: true, data: result });
+    }
+
+    private async adminDeletePost(req: Request, res: Response): Promise<void> {
+        const postId = parseInt(req.params.id as string, 10);
+        if (isNaN(postId)) { res.status(400).json({ success: false, message: "Invalid post ID" }); return; }
+        const success = await this.postService.adminDeletePost(postId);
+        if (!success) { res.status(404).json({ success: false, message: "Post not found" }); return; }
+        res.status(200).json({ success: true, message: "Post deleted by admin" });
+    }
+
+    private streamLikes(req: Request, res: Response): void {
+        const postId = parseInt(req.params.id as string, 10);
+        if (isNaN(postId)) { res.status(400).end(); return; }
+        res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" });
+        res.flushHeaders();
+        res.write(": connected\n\n");
+        likesSSE.subscribe(postId, res);
+    }
+
     private async likePost(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
         const result = await this.postLikeService.likePost(req.user!.id, postId, new CreatePostLikeDto(1));
@@ -126,7 +157,9 @@ export class PostController {
             }
             return;
         }
-        res.status(200).json({ success: true, message: "Post liked successfully" });
+        const likes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        likesSSE.broadcast(postId, likes.total);
+        res.status(200).json({ success: true, message: "Post liked successfully", likesCount: likes.total });
     }
 
     private async unlikePost(req: Request, res: Response): Promise<void> {
@@ -136,7 +169,9 @@ export class PostController {
             res.status(400).json({ success: false, message: "Unable to unlike post" });
             return;
         }
-        res.status(200).json({ success: true, message: "Post unliked successfully" });
+        const likes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        likesSSE.broadcast(postId, likes.total);
+        res.status(200).json({ success: true, message: "Post unliked successfully", likesCount: likes.total });
     }
 
     private async addPostTag(req: Request, res: Response): Promise<void> {

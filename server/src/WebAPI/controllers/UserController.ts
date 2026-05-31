@@ -1,6 +1,8 @@
 import { Request, Response, Router } from "express";
 import { IUserService } from "../../Domain/services/users/IUserService";
 import { IUserFollowerService } from "../../Domain/services/users/IUserFollowerService";
+import { IPostService } from "../../Domain/services/posts/IPostService";
+import { ICommentService } from "../../Domain/services/comments/ICommentService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
 import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
 import { UpdateUserDto } from "../../Domain/DTOs/users/UpdateUserDto";
@@ -10,8 +12,10 @@ export class UserController {
   private readonly router = Router();
 
   public constructor(
-    private readonly userService: IUserService, 
-    private readonly userFollowerService: IUserFollowerService) 
+    private readonly userService: IUserService,
+    private readonly userFollowerService: IUserFollowerService,
+    private readonly postService: IPostService,
+    private readonly commentService: ICommentService)
     {
     this.router.get("/users/search", authenticate, this.searchUser.bind(this));
     this.router.get("/users/all",          authenticate, authorize(UserRole.ADMIN), this.getAll.bind(this));
@@ -23,10 +27,14 @@ export class UserController {
     this.router.put("/users/:id",           authenticate, authorize(UserRole.ADMIN), this.adminUpdateUser.bind(this));
     this.router.delete("/users/:id",        authenticate, authorize(UserRole.ADMIN), this.deleteUser.bind(this));
 
+    this.router.get("/users/:id/posts",     authenticate, this.getUserPosts.bind(this));
+    this.router.get("/users/:id/comments",  authenticate, this.getUserComments.bind(this));
+
     this.router.get("/users/:id/followers", authenticate, this.getFollowers.bind(this));
     this.router.get("/users/:id/following", authenticate, this.getFollowing.bind(this));
-    this.router.post("/users/:id/follow", authenticate, this.followUser.bind(this));
+    this.router.post("/users/:id/follow",   authenticate, this.followUser.bind(this));
     this.router.delete("/users/:id/follow", authenticate, this.unfollowUser.bind(this));
+    this.router.delete("/users/me/followers/:followerId", authenticate, this.removeFollower.bind(this));
   }
 
   private async getAll(req: Request, res: Response): Promise<void> {
@@ -128,5 +136,30 @@ export class UserController {
     if (isNaN(targetId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
     const ok = await this.userFollowerService.unfollowUser(req.user!.id, targetId);
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User unfollowed" : "Failed to unfollow user" });
+  }
+
+  private async removeFollower(req: Request, res: Response): Promise<void> {
+    const followerToRemoveId = parseInt(req.params.followerId as string, 10);
+    if (isNaN(followerToRemoveId)) { res.status(400).json({ success: false, message: "Invalid follower id" }); return; }
+    const ok = await this.userFollowerService.removeFollower(req.user!.id, followerToRemoveId);
+    res.status(ok ? 200 : 404).json({ success: ok, message: ok ? "Follower removed" : "Follower not found" });
+  }
+
+  private async getUserPosts(req: Request, res: Response): Promise<void> {
+    const authorId = parseInt(req.params.id as string, 10);
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+    if (isNaN(authorId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
+    const result = await this.postService.getPostsByAuthor(authorId, page, limit);
+    res.status(200).json({ success: true, data: result });
+  }
+
+  private async getUserComments(req: Request, res: Response): Promise<void> {
+    const authorId = parseInt(req.params.id as string, 10);
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+    if (isNaN(authorId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
+    const result = await this.commentService.getUserComments(authorId, page, limit);
+    res.status(200).json({ success: true, data: result });
   }
 }

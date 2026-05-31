@@ -8,5 +8,8 @@ export class PostDto {
         public mediaAttachment: string = "",
         public deleted: number = 0,
         public createdAt: Date = new Date(),
+        public likesCount: number = 0,
+        public commentsCount: number = 0,
+        public tagIds: number[] = [],
     ) {}
 }

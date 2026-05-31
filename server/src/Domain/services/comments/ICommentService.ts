@@ -7,6 +7,7 @@ export interface ICommentService {
     createComment(userId: number, comment: CreateCommentDto): Promise<CommentDto>;
 
     getPostComments(postId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>>;
+    getUserComments(authorId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>>;
 
     getCommentReplies(parentId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>>;
 

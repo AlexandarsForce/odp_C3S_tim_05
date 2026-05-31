@@ -22,7 +22,31 @@ export class PostRepository implements IPostRepository {
             r.media_attachment ?? null,
             r.deleted,
             r.created_at ? new Date(r.created_at) : new Date(),
+            Number(r.likes_count ?? 0),
+            Number(r.comments_count ?? 0),
         );
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private async attachTagIds(conn: any, posts: Post[]): Promise<void> {
+        if (posts.length === 0) return;
+        const ids = posts.map(p => p.id);
+        const placeholders = ids.map(() => '?').join(',');
+        try {
+            const [tagRows] = await conn.execute(
+                `SELECT post_id, tag_id FROM post_tags WHERE post_id IN (${placeholders})`,
+                ids
+            ) as [RowDataPacket[], unknown];
+            const map = new Map<number, number[]>();
+            for (const row of tagRows) {
+                const arr = map.get(row.post_id) ?? [];
+                arr.push(row.tag_id);
+                map.set(row.post_id, arr);
+            }
+            for (const post of posts) {
+                post.tagIds = map.get(post.id) ?? [];
+            }
+        } catch { /* non-critical */ }
     }
 
     async createPost(post: Post): Promise<Post> {
@@ -62,46 +86,64 @@ export class PostRepository implements IPostRepository {
         if (!res) return { posts: [], totalAmount: 0 };
         const offset = safeInt((page - 1) * limit);
         const lim = safeInt(limit);
-        const sortCol = filters?.sortBy === 'title' ? 'title' : 'created_at';
         const sortDir = filters?.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+        // Build ORDER BY clause
+        let orderBy: string;
+        switch (filters?.sortBy) {
+            case 'title':       orderBy = `p.title ${sortDir}`; break;
+            case 'likesCount':  orderBy = `likes_count ${sortDir}`; break;
+            case 'commentsCount': orderBy = `comments_count ${sortDir}`; break;
+            default:            orderBy = `p.created_at ${sortDir}`; break;
+        }
+
+        // Common subqueries for counts (always included so mapPost can read them)
+        const countSubqueries = `
+            (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comments_count
+        `;
+
         try {
             type CountRow = RowDataPacket & { total: number | string };
+
+            // Where clause
+            const whereParams: number[] = [communityId];
+            let baseWhere = `p.community_id = ?`;
+            if (filters?.authorId) { baseWhere += ` AND p.author_id = ?`; whereParams.push(filters.authorId); }
+
             if (filters?.tagId) {
-                const countParams: (number)[] = [communityId, filters.tagId];
-                let countWhere = `p.community_id = ? AND pt.tag_id = ?`;
-                if (filters.authorId) { countWhere += ` AND p.author_id = ?`; countParams.push(filters.authorId); }
+                const countParams = [...whereParams, filters.tagId];
                 const [countRows] = await res.conn.execute<RowDataPacket[]>(
-                    `SELECT COUNT(DISTINCT p.post_id) as total FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id WHERE ${countWhere}`,
+                    `SELECT COUNT(DISTINCT p.post_id) as total FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id WHERE ${baseWhere} AND pt.tag_id = ?`,
                     countParams
                 );
                 const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
-                const dataParams: (number)[] = [communityId, filters.tagId];
-                let dataWhere = `p.community_id = ? AND pt.tag_id = ?`;
-                if (filters.authorId) { dataWhere += ` AND p.author_id = ?`; dataParams.push(filters.authorId); }
+                const dataParams = [...whereParams, filters.tagId];
                 const [rows] = await res.conn.execute<RowDataPacket[]>(
-                    `SELECT DISTINCT p.* FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id WHERE ${dataWhere} ORDER BY p.${sortCol} ${sortDir} LIMIT ${lim} OFFSET ${offset}`,
+                    `SELECT DISTINCT p.*, ${countSubqueries}
+                     FROM posts p JOIN post_tags pt ON p.post_id = pt.post_id
+                     WHERE ${baseWhere} AND pt.tag_id = ?
+                     ORDER BY ${orderBy} LIMIT ${lim} OFFSET ${offset}`,
                     dataParams
                 );
-                return { posts: rows.map(r => this.mapPost(r)), totalAmount };
+                const posts = rows.map(r => this.mapPost(r));
+                await this.attachTagIds(res.conn, posts);
+                return { posts, totalAmount };
             } else {
-                const countParams: (number)[] = [communityId];
-                let countWhere = `community_id = ?`;
-                if (filters?.authorId) { countWhere += ` AND author_id = ?`; countParams.push(filters.authorId); }
                 const [countRows] = await res.conn.execute<RowDataPacket[]>(
-                    `SELECT COUNT(*) as total FROM posts WHERE ${countWhere}`,
-                    countParams
+                    `SELECT COUNT(*) as total FROM posts p WHERE ${baseWhere}`,
+                    whereParams
                 );
                 const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
-                const dataParams: (number)[] = [communityId];
-                let dataWhere = `community_id = ?`;
-                if (filters?.authorId) { dataWhere += ` AND author_id = ?`; dataParams.push(filters.authorId); }
                 const [rows] = await res.conn.execute<RowDataPacket[]>(
-                    `SELECT * FROM posts WHERE ${dataWhere} ORDER BY ${sortCol} ${sortDir} LIMIT ${lim} OFFSET ${offset}`,
-                    dataParams
+                    `SELECT p.*, ${countSubqueries} FROM posts p WHERE ${baseWhere} ORDER BY ${orderBy} LIMIT ${lim} OFFSET ${offset}`,
+                    whereParams
                 );
-                return { posts: rows.map(r => this.mapPost(r)), totalAmount };
+                const posts = rows.map(r => this.mapPost(r));
+                await this.attachTagIds(res.conn, posts);
+                return { posts, totalAmount };
             }
         }
         catch (err) {
@@ -233,6 +275,31 @@ export class PostRepository implements IPostRepository {
             return { posts: [], totalAmount: 0 };
         }
         finally { resReadPosts.conn.release(); }
+    }
+
+    async findAllPosts(page: number, limit: number): Promise<{ posts: Post[], totalAmount: number }> {
+        const res = await this.db.getReadConnection();
+        if (!res) return { posts: [], totalAmount: 0 };
+        const offset = safeInt((page - 1) * limit);
+        const lim = safeInt(limit);
+        try {
+            type CountRow = RowDataPacket & { total: number | string };
+            const countSubqueries = `
+                (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+                (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comments_count
+            `;
+            const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts`);
+            const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT p.*, ${countSubqueries} FROM posts p ORDER BY p.created_at DESC LIMIT ${lim} OFFSET ${offset}`
+            );
+            const posts = rows.map(r => this.mapPost(r));
+            await this.attachTagIds(res.conn, posts);
+            return { posts, totalAmount };
+        } catch (err) {
+            this.logger.error("PostRepository", "findAllPosts failed", err);
+            return { posts: [], totalAmount: 0 };
+        } finally { res.conn.release(); }
     }
 
     async updatePost(postId: number, post: Post): Promise<boolean> {
