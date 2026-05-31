@@ -110,7 +110,7 @@ export class CommentRepository implements ICommentRepository {
     if (!res) return { comments: [], totalAmount: 0 };
     try {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments WHERE parent_id = ? AND deleted = 0 ORDER BY created_at ASC`, 
+        `SELECT * FROM comments WHERE parent_id = ? AND deleted = 0 ORDER BY created_at ASC`,
         [parentId]
       );
       return {
@@ -120,8 +120,26 @@ export class CommentRepository implements ICommentRepository {
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentsByParentId failed", err);
       return { comments: [], totalAmount: 0 };
-    } finally { 
-      res.conn.release(); 
+    } finally {
+      res.conn.release();
+    }
+  }
+
+  async hasChildComments(commentId: number): Promise<boolean> {
+    const res = await this.db.getReadConnection();
+    if (!res) return false;
+    try {
+      type CountRow = RowDataPacket & { total: number | string };
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as total FROM comments WHERE parent_id = ? AND deleted = 0`,
+        [commentId]
+      );
+      return Number((rows as CountRow[])[0]?.total ?? 0) > 0;
+    } catch (err) {
+      this.logger.error("CommentRepository", "hasChildComments failed", err);
+      return false;
+    } finally {
+      res.conn.release();
     }
   }
 
@@ -142,20 +160,37 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
+  async softDeleteComment(commentId: number): Promise<boolean> {
+    const res = await this.db.getWriteConnection();
+    if (!res) return false;
+    try {
+      const [result] = await res.conn.execute<ResultSetHeader>(
+        `UPDATE comments SET content = '[deleted]' WHERE comment_id = ?`,
+        [commentId]
+      );
+      return result.affectedRows > 0;
+    } catch (err) {
+      this.logger.error("CommentRepository", "softDeleteComment failed", err);
+      return false;
+    } finally {
+      res.conn.release();
+    }
+  }
+
   async deleteComment(commentId: number): Promise<boolean> {
     const res = await this.db.getWriteConnection();
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE comments SET deleted = 1 WHERE comment_id = ?`, 
+        `UPDATE comments SET deleted = 1 WHERE comment_id = ?`,
         [commentId]
       );
       return result.affectedRows > 0;
     } catch (err) {
       this.logger.error("CommentRepository", "deleteComment failed", err);
       return false;
-    } finally { 
-      res.conn.release(); 
+    } finally {
+      res.conn.release();
     }
   }
 }

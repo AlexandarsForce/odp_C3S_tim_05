@@ -27,6 +27,22 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         } finally { res.conn.release(); }
     }
 
+    async isFollowing(userId: number, followerId: number): Promise<boolean> {
+        const res = await this.db.getReadConnection();
+        if (!res) return false;
+        try {
+            type CountRow = RowDataPacket & { total: number | string };
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT COUNT(*) as total FROM user_follows WHERE following_id = ? AND follower_id = ?`,
+                [userId, followerId]
+            );
+            return Number((rows as CountRow[])[0]?.total ?? 0) > 0;
+        } catch (err) {
+            this.logger.error("UserFollowerRepository", "isFollowing failed", err);
+            return false;
+        } finally { res.conn.release(); }
+    }
+
     async findAllFollowers(userId: number, page: number, limit: number): Promise<{ followers: UserFollower[], totalAmount: number }> {
         const res = await this.db.getReadConnection();
         if (!res) return { followers: [], totalAmount: 0 };

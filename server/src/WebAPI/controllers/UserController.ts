@@ -91,8 +91,18 @@ export class UserController {
   private async followUser(req: Request, res: Response): Promise<void> {
     const targetId = parseInt(req.params.id as string, 10);
     if (isNaN(targetId)) { res.status(400).json({ success: false, message: "Invalid user id" }); return; }
-    const ok = await this.userFollowerService.followUser(req.user!.id, targetId);
-    res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User followed" : "Failed to follow user" });
+    const result = await this.userFollowerService.followUser(req.user!.id, targetId);
+    if (!result.success) {
+      if (result.reason === 'SELF_FOLLOW') {
+        res.status(400).json({ success: false, message: "You cannot follow yourself" });
+      } else if (result.reason === 'ALREADY_FOLLOWING') {
+        res.status(409).json({ success: false, message: "You are already following this user" });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to follow user" });
+      }
+      return;
+    }
+    res.status(200).json({ success: true, message: "User followed" });
   }
 
   private async unfollowUser(req: Request, res: Response): Promise<void> {
