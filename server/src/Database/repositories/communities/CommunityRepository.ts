@@ -39,9 +39,6 @@ export class CommunityRepository implements ICommunityRepository {
         return new Community(result.insertId, community.ownerId, community.name, community.description, community.rules, community.avatarPicture, community.type);
     }
     catch (err) {
-        if ((err as any).code === 'ER_DUP_ENTRY') {
-            throw new Error("Zajednica sa ovim nazivom već postoji");
-        }
         this.logger.error("CommunityRepository", "createCommunity failed", err);
         return new Community();
     }

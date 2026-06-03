@@ -8,6 +8,7 @@ import { CommunityMemberDto } from "../../Domain/DTOs/communities/CommunityMembe
 import { CommunityMember } from "../../Domain/models/CommunityMember";
 import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";
 import { CommunityMemberStatus } from "../../Domain/enums/CommunityMemberStatus";
+import { UpdateMemberRoleResult } from "../../Domain/enums/UpdateMemberRoleResult";
 
 export class CommunityMemberService implements ICommunityMemberService {
     public constructor(
@@ -39,7 +40,6 @@ export class CommunityMemberService implements ICommunityMemberService {
         return result;
     }
 
-    // Bug fix #3: actorId is the moderator, targetUserId is the applicant whose status changes
     async responseJoinCommunity(actorId: number, communityId: number, targetUserId: number, response: ResponseCommunityDto): Promise<boolean> {
         const applicant = await this.communityRepository.findCommunityMemberById(communityId, targetUserId);
         if (applicant.userId === 0 || applicant.status !== CommunityMemberStatus.PENDING) return false;
@@ -57,24 +57,21 @@ export class CommunityMemberService implements ICommunityMemberService {
         return new PaginatedListDto(members.map((m) => this.toDto(m)), totalAmount, page, limit);
     }
 
-    async updateCommunityMemberRole(actorId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<boolean> {
+    async updateCommunityMemberRole(actorId: number, memberId: number, communityId: number, newRole: UpdateCommunityMemberRoleDto): Promise<UpdateMemberRoleResult> {
         const communityMember = await this.communityRepository.findCommunityMemberById(communityId, memberId);
-        if (communityMember.userId === 0) return false;
+        if (communityMember.userId === 0) return UpdateMemberRoleResult.NotFound;
 
-        // Zaštita: ne dozvoljavamo degradaciju ako je jedini moderator
         if (newRole.role === CommunityMemberRole.MEMBER && communityMember.role === CommunityMemberRole.MODERATOR) {
             const { totalAmount } = await this.communityRepository.findCommunityMemberByRole(communityId, CommunityMemberRole.MODERATOR, 1, 1);
-            if (totalAmount <= 1) {
-                throw new Error("Zajednica mora imati bar jednog moderatora");
-            }
+            if (totalAmount <= 1) return UpdateMemberRoleResult.LastModerator;
         }
 
         communityMember.role = newRole.role;
-        const result = await this.communityRepository.updateCommunityMember(communityId, communityMember);
-        if (result) {
+        const ok = await this.communityRepository.updateCommunityMember(communityId, communityMember);
+        if (ok) {
             await this.auditService.log({ userId: actorId, action: "UPDATE_COMMUNITY_MEMBER_ROLE", details: `communityId: ${communityId}, memberId: ${memberId}, newRole: ${newRole.role}` });
         }
-        return result;
+        return ok ? UpdateMemberRoleResult.Success : UpdateMemberRoleResult.NotFound;
     }
 
     async removeCommunityMember(userId: number, memberId: number, communityId: number): Promise<boolean> {

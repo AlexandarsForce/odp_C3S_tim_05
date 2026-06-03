@@ -1,4 +1,3 @@
-// TODO: Replace Entity with your domain resource name and adjust routes/roles accordingly
 import { Request, Response, Router } from "express";
 import { IEntityService } from "../../Domain/services/entity/IEntityService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
@@ -40,7 +39,6 @@ export class EntityController {
   }
 
   private async create(req: Request, res: Response): Promise<void> {
-    // TODO: Validate req.body and build CreateEntityDto from it
     const created = await this.entityService.create({ userId: req.user!.id });
     if (!created) { res.status(500).json({ success: false, message: "Failed to create" }); return; }
     res.status(201).json({ success: true, data: created });

@@ -1,4 +1,3 @@
-// TODO: Update BASE path to match your actual API route (e.g. "orders", "products", etc.)
 import axios from "axios";
 import type { IEntityAPIService, ApiResponse } from "./IEntityAPIService";
 import type { EntityDto } from "../../models/entity/EntityDto";

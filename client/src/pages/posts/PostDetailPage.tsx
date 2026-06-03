@@ -1,6 +1,5 @@
 import { useParams } from "react-router-dom";
 
-// TODO: Add full post detail UI (content, comments, likes)
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
 

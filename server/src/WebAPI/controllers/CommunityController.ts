@@ -10,6 +10,8 @@ import { UpdateCommunityDto } from "../../Domain/DTOs/communities/UpdateCommunit
 import { UpdateCommunityMemberRoleDto } from '../../Domain/DTOs/communities/UpdateCommunityMemberRoleDto';
 import { ResponseCommunityDto } from '../../Domain/DTOs/communities/ResponseCommunityDto';
 import { validateCreateCommunity, validateUpdateCommunity } from '../validators/communities/ValidateCommunity';
+import { CreateCommunityResult } from '../../Domain/enums/CreateCommunityResult';
+import { UpdateMemberRoleResult } from '../../Domain/enums/UpdateMemberRoleResult';
 
 export class CommunityController {
   private readonly router = Router()
@@ -66,13 +68,10 @@ export class CommunityController {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        try {
-            const community = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture,type));
-            res.status(201).json({ success: true, data: community });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "Unable to create community";
-            res.status(409).json({ success: false, message });
-        }
+        const { result, community } = await this.communityService.createCommunity(req.user!.id, new CreateCommunityDto(req.user!.id, name, description, rules, avatarPicture, type));
+        if (result === CreateCommunityResult.DuplicateName) { res.status(409).json({ success: false, message: "Community with this name already exists" }); return; }
+        if (result === CreateCommunityResult.Unavailable || !community) { res.status(503).json({ success: false, message: "Service temporarily unavailable" }); return; }
+        res.status(201).json({ success: true, data: community });
     }
 
     private async getCommunityDetails(req: Request, res: Response): Promise<void> {
@@ -156,14 +155,10 @@ export class CommunityController {
         const actorRole = req.user!.role;
         const isMod = actorRole === UserRole.ADMIN || await this.communityMemberService.isModerator(req.user!.id, communityId);
         if (!isMod) { res.status(403).json({ success: false, message: "Only moderators or admins can change member roles" }); return; }
-        try {
-            const ok = await this.communityMemberService.updateCommunityMemberRole(req.user!.id, memberId, communityId, new UpdateCommunityMemberRoleDto(role));
-            if (!ok) { res.status(404).json({ success: false, message: "Community or member not found" }); return; }
-            res.status(200).json({ success: true, message: "Member role updated" });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "Unable to update member role";
-            res.status(400).json({ success: false, message });
-        }
+        const result = await this.communityMemberService.updateCommunityMemberRole(req.user!.id, memberId, communityId, new UpdateCommunityMemberRoleDto(role));
+        if (result === UpdateMemberRoleResult.NotFound) { res.status(404).json({ success: false, message: "Community or member not found" }); return; }
+        if (result === UpdateMemberRoleResult.LastModerator) { res.status(409).json({ success: false, message: "Community must have at least one moderator" }); return; }
+        res.status(200).json({ success: true, message: "Member role updated" });
     }
 
     private async responseJoinCommunity(req: Request, res: Response): Promise<void> {

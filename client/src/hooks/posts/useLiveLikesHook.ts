@@ -2,10 +2,6 @@ import { useEffect, useState } from "react";
 
 const API = import.meta.env.VITE_API_URL ?? "";
 
-/**
- * Subscribes to Server-Sent Events for live likes count of a post.
- * Returns the current likes count, initialised from `initialCount`.
- */
 export function useLiveLikes(postId: number, initialCount: number): number {
   const [likesCount, setLikesCount] = useState(initialCount);
 

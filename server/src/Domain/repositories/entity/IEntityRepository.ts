@@ -1,4 +1,3 @@
-// TODO: Replace Entity / EntityDto with your domain types
 import { Entity } from "../../models/Entity";
 import { EntityDto } from "../../DTOs/entity/EntityDto";
 import { CreateEntityDto } from "../../DTOs/entity/CreateEntityDto";

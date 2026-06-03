@@ -1,4 +1,3 @@
-// TODO: Replace "Entity" and its fields with your domain model
 import { EntityStatus } from "../enums/EntityStatus";
 
 export class Entity {
