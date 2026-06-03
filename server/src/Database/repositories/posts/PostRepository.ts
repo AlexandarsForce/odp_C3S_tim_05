@@ -1,4 +1,5 @@
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { RowDataPacket, ResultSetHeader, FieldPacket } from "mysql2";
+import { PoolConnection } from "mysql2/promise";
 import { IPostRepository, PostFilters } from "../../../Domain/repositories/posts/IPostRepository";
 import { Post } from "../../../Domain/models/Post";
 import { DbManager } from "../../connection/DbConnectionPool";
@@ -27,8 +28,7 @@ export class PostRepository implements IPostRepository {
         );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private async attachTagIds(conn: any, posts: Post[]): Promise<void> {
+    private async attachTagIds(conn: PoolConnection, posts: Post[]): Promise<void> {
         if (posts.length === 0) return;
         const ids = posts.map(p => p.id);
         const placeholders = ids.map(() => '?').join(',');
@@ -36,7 +36,7 @@ export class PostRepository implements IPostRepository {
             const [tagRows] = await conn.execute(
                 `SELECT post_id, tag_id FROM post_tags WHERE post_id IN (${placeholders})`,
                 ids
-            ) as [RowDataPacket[], unknown];
+            ) as [RowDataPacket[], FieldPacket[]];
             const map = new Map<number, number[]>();
             for (const row of tagRows) {
                 const arr = map.get(row.post_id) ?? [];
@@ -88,7 +88,6 @@ export class PostRepository implements IPostRepository {
         const lim = safeInt(limit);
         const sortDir = filters?.sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-        // Build ORDER BY clause
         let orderBy: string;
         switch (filters?.sortBy) {
             case 'title':       orderBy = `p.title ${sortDir}`; break;
@@ -97,7 +96,6 @@ export class PostRepository implements IPostRepository {
             default:            orderBy = `p.created_at ${sortDir}`; break;
         }
 
-        // Common subqueries for counts (always included so mapPost can read them)
         const countSubqueries = `
             (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
             (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comments_count
@@ -106,7 +104,6 @@ export class PostRepository implements IPostRepository {
         try {
             type CountRow = RowDataPacket & { total: number | string };
 
-            // Where clause
             const whereParams: number[] = [communityId];
             let baseWhere = `p.community_id = ?`;
             if (filters?.authorId) { baseWhere += ` AND p.author_id = ?`; whereParams.push(filters.authorId); }

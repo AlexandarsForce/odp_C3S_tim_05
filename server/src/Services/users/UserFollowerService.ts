@@ -11,12 +11,10 @@ export class UserFollowerService implements IUserFollowerService {
     ) {}
 
     async followUser(userId: number, followUserId: number): Promise<FollowUserResult> {
-        // Provjera: ne može se pratiti samog sebe
         if (userId === followUserId) {
             return { success: false, reason: 'SELF_FOLLOW' };
         }
 
-        // Provjera: duplikat — eksplicitno, prije DB INSERT-a
         const alreadyFollowing = await this.userFollowerRepository.isFollowing(userId, followUserId);
         if (alreadyFollowing) {
             return { success: false, reason: 'ALREADY_FOLLOWING' };
@@ -48,7 +46,6 @@ export class UserFollowerService implements IUserFollowerService {
     }
 
     async removeFollower(userId: number, followerToRemoveId: number): Promise<boolean> {
-        // userId je "following" strana — uklanja followerToRemoveId iz sopstvene liste pratilaca
         const result = await this.userFollowerRepository.deleteFollower(userId, followerToRemoveId);
         if (result) await this.auditService.log({ userId, action: "FOLLOWER_REMOVED", details: `Removed follower ${followerToRemoveId}` });
         return result;

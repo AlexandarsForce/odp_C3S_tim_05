@@ -3,10 +3,6 @@ import { MentionDto } from "../DTOs/comments/MentionDto";
 
 const MENTION_REGEX = /@([a-zA-Z0-9-]+)/g;
 
-/**
- * Extracts all @username mentions from text, resolves each to a userId,
- * and returns a deduplicated list of found users.
- */
 export async function parseMentions(content: string, userRepo: IUserRepository): Promise<MentionDto[]> {
     const usernames = new Set<string>();
     let match: RegExpExecArray | null;

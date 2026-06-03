@@ -16,10 +16,6 @@ interface Props {
   disabled?: boolean;
 }
 
-/**
- * Textarea that detects @username typing and shows an autocomplete dropdown.
- * When a suggestion is selected, it replaces the partial @mention in the text.
- */
 export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€¦", disabled = false }: Props) {
   const [content, setContent] = useState("");
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
@@ -29,7 +25,6 @@ export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Detect @mention at cursor position
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
@@ -110,7 +105,6 @@ export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€
     setLoading(false);
   };
 
-  // Cleanup debounce on unmount
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   return (

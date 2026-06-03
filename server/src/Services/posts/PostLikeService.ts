@@ -24,13 +24,11 @@ export class PostLikeService implements IPostLikeService {
     }
 
     async likePost(userId: number, postId: number, postLike: CreatePostLikeDto): Promise<LikePostResult> {
-        // Provjera: ne može se lajkovati sopstveni post
         const post = await this.postRepository.findPostById(postId);
         if (post.id !== 0 && post.authorId === userId) {
             return { success: false, reason: 'OWN_POST' };
         }
 
-        // Provjera: duplikat lajka
         const alreadyLiked = await this.postLikeRepository.isLikedByUser(postId, userId);
         if (alreadyLiked) {
             return { success: false, reason: 'DUPLICATE' };

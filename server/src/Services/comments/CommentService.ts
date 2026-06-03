@@ -44,17 +44,13 @@ export class CommentService implements ICommentService {
     }
 
     async createComment(userId: number, comment: CreateCommentDto): Promise<CommentDto> {
-        // Validacija roditeljskog komentara (ako postoji)
         if (comment.parentId !== null && comment.parentId !== undefined) {
             const parent = await this.commentRepository.findCommentById(comment.parentId);
 
-            // Roditelj mora postojati
-            if (parent.id === 0) throw new Error("Roditeljski komentar ne postoji");
+            if (parent.id === 0) return new CommentDto();
 
-            // Bug fix: post_id child komentara mora biti isti kao i kod roditelja
-            if (parent.postId !== comment.postId) throw new Error("Odgovor mora biti na komentar iz iste objave");
+            if (parent.postId !== comment.postId) return new CommentDto();
 
-            // Provjera dubine — maksimalno 2 nivoa
             if (parent.parentId !== null && parent.parentId !== undefined) {
                 const grandparent = await this.commentRepository.findCommentById(parent.parentId);
                 if (grandparent.id === 0) return new CommentDto();
@@ -100,7 +96,6 @@ export class CommentService implements ICommentService {
     async updateComment(userId: number, commentId: number, comment: UpdateCommentDto): Promise<boolean> {
         const existingComment = await this.commentRepository.findCommentById(commentId);
         if (existingComment.id === 0 || existingComment.authorId !== userId) return false;
-        // Onemogući izmjenu soft-deleted komentara
         if (existingComment.content === SOFT_DELETED_CONTENT) return false;
         const updated = await this.commentRepository.updateComment(commentId, new Comment(
             commentId,
@@ -118,15 +113,12 @@ export class CommentService implements ICommentService {
     }
 
     async reportComment(actorId: number, commentId: number): Promise<boolean> {
-        // 1. Nađi komentar
         const comment = await this.commentRepository.findCommentById(commentId);
         if (comment.id === 0) return false;
 
-        // 2. Nađi post da dobiješ communityId
         const post = await this.postRepository.findPostById(comment.postId);
         if (post.id === 0) return false;
 
-        // 3. Provjeri da li je actor moderator te zajednice
         const membership = await this.communityMemberRepository.findCommunityMemberById(post.communityId, actorId);
         const isModerator = membership.userId !== 0
             && membership.role === CommunityMemberRole.MODERATOR
@@ -143,8 +135,6 @@ export class CommentService implements ICommentService {
         const existingComment = await this.commentRepository.findCommentById(commentId);
         if (existingComment.id === 0 || existingComment.authorId !== userId) return false;
 
-        // Uvijek soft-delete: sadržaj postaje "[deleted]", komentar ostaje vidljiv
-        // bez obzira ima li odgovore ili ne — konzistentno ponašanje
         const success = await this.commentRepository.softDeleteComment(commentId);
 
         if (success) {

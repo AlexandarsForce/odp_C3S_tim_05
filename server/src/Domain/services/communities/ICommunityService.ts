@@ -2,9 +2,10 @@ import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
 import { CommunityDto } from "../../DTOs/communities/CommunityDto";
 import { CreateCommunityDto } from "../../DTOs/communities/CreateCommunityDto";
 import { UpdateCommunityDto } from "../../DTOs/communities/UpdateCommunityDto";
+import { CreateCommunityResult } from "../../enums/CreateCommunityResult";
 
 export interface ICommunityService {
-    createCommunity(userId: number, createCommunityDto: CreateCommunityDto): Promise<CommunityDto>;
+    createCommunity(userId: number, createCommunityDto: CreateCommunityDto): Promise<{ result: CreateCommunityResult; community?: CommunityDto }>;
 
     getCommunityDetails(communityId: number): Promise<CommunityDto>;
     getAllCommunities(page: number, limit: number, isAdmin: boolean): Promise<PaginatedListDto<CommunityDto>>;

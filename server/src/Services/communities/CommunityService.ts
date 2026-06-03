@@ -11,6 +11,7 @@ import { Community } from "../../Domain/models/Community";
 import { CommunityMember } from "../../Domain/models/CommunityMember";
 import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";
 import { CommunityMemberStatus } from "../../Domain/enums/CommunityMemberStatus";
+import { CreateCommunityResult } from "../../Domain/enums/CreateCommunityResult";
 
 export class CommunityService implements ICommunityService {
   public constructor(
@@ -33,15 +34,18 @@ export class CommunityService implements ICommunityService {
     );
   }
 
-    async createCommunity(userId: number, createCommunityDto: CreateCommunityDto): Promise<CommunityDto> {
+    async createCommunity(userId: number, createCommunityDto: CreateCommunityDto): Promise<{ result: CreateCommunityResult; community?: CommunityDto }> {
+        const existing = await this.communityRepository.findCommunityByName(createCommunityDto.name);
+        if (existing.id !== 0) return { result: CreateCommunityResult.DuplicateName };
+
         const community = new Community(0, createCommunityDto.ownerId, createCommunityDto.name, createCommunityDto.description, createCommunityDto.rules, createCommunityDto.avatarPicture, createCommunityDto.type);
         const created = await this.communityRepository.createCommunity(community);
-        if (created.id === 0) return new CommunityDto();
-        // Add owner as active moderator automatically
+        if (created.id === 0) return { result: CreateCommunityResult.Unavailable };
+
         const ownerMember = new CommunityMember(userId, created.id, CommunityMemberRole.MODERATOR, CommunityMemberStatus.ACTIVE);
         await this.communityMemberRepository.addCommunityMember(created.id, ownerMember);
-        await this.auditService.log({ userId, action: "COMMUNITY_CREATED", details: "communities"});
-        return this.toDto(created);
+        await this.auditService.log({ userId, action: "COMMUNITY_CREATED", details: "communities" });
+        return { result: CreateCommunityResult.Success, community: this.toDto(created) };
     }
 
     async getCommunityDetails(communityId: number): Promise<CommunityDto> {

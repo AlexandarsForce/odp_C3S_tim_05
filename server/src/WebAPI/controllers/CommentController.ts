@@ -55,17 +55,12 @@ export class CommentController {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        try {
-            const comment = await this.commentService.createComment(req.user!.id, dto);
-            if (comment.id === 0) {
-                res.status(400).json({ success: false, message: "Unable to create comment" });
-                return;
-            }
-            res.status(201).json({ success: true, data: comment });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "Unable to create comment";
-            res.status(400).json({ success: false, message });
+        const comment = await this.commentService.createComment(req.user!.id, dto);
+        if (comment.id === 0) {
+            res.status(400).json({ success: false, message: "Unable to create comment" });
+            return;
         }
+        res.status(201).json({ success: true, data: comment });
     }
 
     private async updateComment(req: Request, res: Response): Promise<void> {
@@ -112,14 +107,12 @@ export class CommentController {
         const commentId = parseInt(req.params.id as string, 10);
         if (isNaN(commentId)) { res.status(400).json({ success: false, message: "Invalid comment ID" }); return; }
 
-        // Admin može prijaviti bez provjere moderatorstva
         if (req.user!.role === UserRole.ADMIN) {
             const success = await this.commentService.reportComment(req.user!.id, commentId);
             res.status(success ? 200 : 404).json({ success, message: success ? "Comment reported" : "Comment not found" });
             return;
         }
 
-        // Za moderatore — servis interno provjerava moderatorstvo
         const success = await this.commentService.reportComment(req.user!.id, commentId);
         if (!success) {
             res.status(403).json({ success: false, message: "Only moderators or admins can report comments" });

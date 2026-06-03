@@ -1,4 +1,3 @@
-// TODO: Replace with your domain-specific service interface
 import { EntityDto } from "../../DTOs/entity/EntityDto";
 import { CreateEntityDto } from "../../DTOs/entity/CreateEntityDto";
 import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";

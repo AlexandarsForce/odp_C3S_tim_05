@@ -84,7 +84,7 @@ export class DbManager implements IHealthService {
     try {
       conn = await Promise.race([
         info.pool.getConnection(),
-        new Promise<PoolConnection>((_, reject) => setTimeout(() => reject(new Error("Connection timeout")), HEALTH_CHECK_TIMEOUT)),
+        new Promise<PoolConnection>((_, reject) => setTimeout(() => reject("Connection timeout"), HEALTH_CHECK_TIMEOUT)),
       ]);
 
       await conn.query("SELECT 1");
@@ -299,7 +299,6 @@ export class DbManager implements IHealthService {
     this.healthTimer = setInterval(() => void this.runHealthCheck(), intervalMs);
   }
 
-  /** All writes (INSERT/UPDATE/DELETE) → Master only */
   public async getWriteConnection(): Promise<{ conn: PoolConnection; nodeName: string } | null> {
     if (this.master.node.status === NodeStatus.UNREACHABLE) {
       this.logger.error("DB", "Master is UNREACHABLE — write not possible");
@@ -317,7 +316,6 @@ export class DbManager implements IHealthService {
     }
   }
 
-  /** All reads (SELECT) → Round-Robin slaves, fallback to Master */
   public async getReadConnection(): Promise<{ conn: PoolConnection; nodeName: string } | null> {
     const n = this.slaves.length;
     for (let i = 0; i < n; i++) {
@@ -335,7 +333,6 @@ export class DbManager implements IHealthService {
         this.logger.warn("DB", `Slave ${info.name} unreachable, trying next`);
       }
     }
-    // Fallback to master
     this.logger.warn("DB", "All slaves unreachable — falling back to master for read");
     if (this.master.node.status === NodeStatus.UNREACHABLE) {
       this.logger.error("DB", "Master also unreachable — read not possible");

@@ -1,5 +1,3 @@
-// TODO: Replace Entity, EntityDto, CreateEntityDto with your domain types
-// TODO: Replace table name "entities" with your actual table name
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { IEntityRepository } from "../../../Domain/repositories/entity/IEntityRepository";
 import { Entity } from "../../../Domain/models/Entity";

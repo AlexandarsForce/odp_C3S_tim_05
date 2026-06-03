@@ -1,4 +1,3 @@
-// TODO: Replace with your domain-specific DTO fields
 import { EntityStatus } from "../../enums/EntityStatus";
 
 export class EntityDto {

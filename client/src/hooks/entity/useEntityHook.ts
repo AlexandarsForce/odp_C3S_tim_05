@@ -1,4 +1,3 @@
-// TODO: Replace EntityDto and entityApi with your domain types and API service
 import { useState, useEffect, useCallback } from "react";
 import { entityApi } from "../../api_services/entity/EntityAPIService";
 import type { EntityDto } from "../../models/entity/EntityDto";
