@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import { Footer } from "../../components/layout/Footer";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
@@ -106,6 +107,8 @@ export default function MyCommunitiesPage() {
           </Link>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

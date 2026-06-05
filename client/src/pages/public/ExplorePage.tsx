@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import { useAuth } from "../../hooks/auth/useAuthHook";
+import { AppNavbar } from "../../components/layout/AppNavbar";
+import { Footer } from "../../components/layout/Footer";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
 const GRADIENTS = [
@@ -41,18 +43,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
-      <nav className="sticky top-0 z-100 bg-[rgba(247,248,240,0.92)] backdrop-blur-[12px] border-b border-pn-border px-6">
-        <div className="max-w-[1120px] mx-auto h-[60px] flex items-center justify-between">
-          <Link to="/" className="font-['Cormorant_Garamond',serif] text-[1.25rem] font-semibold text-pn-steel">
-            Pulse<span className="text-pn-sky">Net</span>
-          </Link>
-          <div className="flex gap-2 items-center">
-            <Link to="/my-communities" className="text-[0.875rem] font-medium text-pn-muted px-3 py-[6px] rounded-lg hover:text-pn-steel">My Communities</Link>
-            <Link to="/feed" className="text-[0.875rem] font-medium text-pn-muted px-3 py-[6px] rounded-lg hover:text-pn-steel">Feed</Link>
-            <Link to="/profile/me" className="text-[0.875rem] font-semibold text-white bg-pn-steel px-[18px] py-[8px] rounded-lg">My Account</Link>
-          </div>
-        </div>
-      </nav>
+      <AppNavbar />
 
       <main className="max-w-[1120px] mx-auto px-6 py-10 pb-20">
         <div className="mb-7">
@@ -60,16 +51,10 @@ export default function ExplorePage() {
             <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(2rem,4vw,2.6rem)] font-bold text-pn-navy leading-[1.1]">
               Explore Communities
             </h1>
-            <div className="flex gap-3 shrink-0">
-              <Link to="/my-communities"
-                className="inline-flex items-center justify-center bg-pn-white text-pn-steel font-semibold text-[0.92rem] px-5 py-[10px] rounded-xl border border-pn-border hover:border-pn-sky transition-all whitespace-nowrap">
-                My Communities
-              </Link>
-              <Link to="/community/create"
-                className="inline-flex items-center justify-center bg-pn-steel text-white font-semibold text-[0.92rem] px-5 py-[10px] rounded-xl shadow-[0_8px_20px_rgba(53,88,114,0.2)] hover:bg-[#2a4760] transition-all whitespace-nowrap">
-                + Create
-              </Link>
-            </div>
+            <Link to="/community/create"
+              className="inline-flex items-center justify-center bg-pn-steel text-white font-semibold text-[0.92rem] px-5 py-[10px] rounded-xl shadow-[0_8px_20px_rgba(53,88,114,0.2)] hover:bg-[#2a4760] transition-all whitespace-nowrap shrink-0">
+              + Create community
+            </Link>
           </div>
           <p className="text-[1rem] leading-[1.7] text-pn-muted max-w-[560px]">
             Find professional spaces built around skills, industries, and focused collaboration.
@@ -131,31 +116,35 @@ export default function ExplorePage() {
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-full bg-pn-white border border-pn-border rounded-2xl px-7 py-12 text-center">
-              <div className="w-12 h-12 rounded-xl bg-[rgba(122,170,206,0.14)] flex items-center justify-center text-pn-steel mx-auto mb-4">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="col-span-full bg-pn-white border border-pn-border rounded-2xl px-6 py-7 flex items-center gap-5 max-sm:flex-col max-sm:text-center">
+              <div className="w-11 h-11 rounded-xl bg-[rgba(122,170,206,0.14)] flex items-center justify-center text-pn-steel shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="7" />
                   <line x1="20" y1="20" x2="16.5" y2="16.5" />
                 </svg>
               </div>
-              <p className="font-['Cormorant_Garamond',serif] text-[1.4rem] font-semibold text-pn-navy mb-2">
-                {search ? "No matches yet" : "You're in every circle"}
-              </p>
-              <p className="text-[0.9rem] text-pn-muted mb-5 max-w-[400px] mx-auto leading-[1.6]">
-                {search
-                  ? <>Nothing matches "<strong className="text-pn-navy font-semibold">{search}</strong>" — try a broader keyword or a topic name.</>
-                  : "You've joined every public community on PulseNet. Start a new one to expand the network."}
-              </p>
+              <div className="flex-1 min-w-0">
+                <p className="font-['Cormorant_Garamond',serif] text-[1.2rem] font-semibold text-pn-navy leading-tight">
+                  {search ? "No matches yet" : "You're in every circle"}
+                </p>
+                <p className="text-[0.86rem] text-pn-muted mt-1 leading-[1.55]">
+                  {search
+                    ? <>Nothing matches "<strong className="text-pn-navy font-semibold">{search}</strong>" — try a broader keyword.</>
+                    : "You've joined every public community on PulseNet. Start a new one to expand the network."}
+                </p>
+              </div>
               {!search && (
                 <Link to="/community/create"
-                  className="inline-block bg-pn-steel text-white font-semibold text-[0.88rem] px-6 py-[10px] rounded-xl shadow-[0_6px_16px_rgba(53,88,114,0.2)] hover:bg-[#2a4760] transition-colors">
-                  + Create a community
+                  className="inline-flex items-center justify-center bg-pn-white text-pn-steel font-semibold text-[0.86rem] px-5 py-[9px] rounded-xl border border-pn-border hover:border-pn-sky hover:bg-[rgba(122,170,206,0.06)] transition-colors whitespace-nowrap shrink-0">
+                  + Create community
                 </Link>
               )}
             </div>
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

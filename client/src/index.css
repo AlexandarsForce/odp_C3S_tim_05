@@ -24,6 +24,27 @@
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.5; transform: scale(0.7); }
 }
+@keyframes aurora {
+  0%   { background-position:   0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position:   0% 50%; }
+}
+@keyframes toastIn {
+  0%   { opacity: 0; transform: translate(-50%, 30px) scale(0.95); }
+  60%  { opacity: 1; transform: translate(-50%, -6px) scale(1.02); }
+  100% { opacity: 1; transform: translate(-50%, 0)   scale(1); }
+}
+@keyframes drawCheck {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ringGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(122,170,206,0.0); }
+  50%      { box-shadow: 0 0 0 6px rgba(122,170,206,0.18); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
 
 .animate-fade-up { animation: fadeUp 0.6s ease both; }
 .animate-fade-up-1 { animation: fadeUp 0.6s 0.1s ease both; }
@@ -31,3 +52,12 @@
 .animate-fade-up-3 { animation: fadeUp 0.6s 0.3s ease both; }
 .animate-fade-up-4 { animation: fadeUp 0.6s 0.4s ease both; }
 .animate-pulse-dot { animation: pulse-dot 2s ease infinite; }
+.animate-aurora     { background-size: 200% 200%; animation: aurora 14s ease infinite; }
+.animate-toast-in   { animation: toastIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-draw-check { stroke-dasharray: 28; stroke-dashoffset: 28; animation: drawCheck 0.45s 0.05s ease-out forwards; }
+.animate-ring-glow  { animation: ringGlow 2.4s ease-in-out infinite; }
+.animate-shimmer    {
+  background: linear-gradient(90deg, transparent, rgba(122,170,206,0.18), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+}

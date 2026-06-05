@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuthHook";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import { Footer } from "../../components/layout/Footer";
 
 type CommunityPreview = {
   id: number;
@@ -128,6 +129,7 @@ export default function UserDashboard() {
         </div>
       </main>
 
+      <Footer />
     </div>
   );
 }
