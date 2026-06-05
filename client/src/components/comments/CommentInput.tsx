@@ -20,7 +20,6 @@ export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€
   const [content, setContent] = useState("");
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,7 +34,6 @@ export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€
 
     if (match) {
       const query = match[1];
-      setMentionQuery(query);
       setSuggestionIndex(0);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -64,7 +62,6 @@ export function CommentInput({ token, onSubmit, placeholder = "Write a commentâ€
 
   const closeSuggestions = () => {
     setSuggestions([]);
-    setMentionQuery(null);
   };
 
   const applyMention = useCallback((user: UserSuggestion) => {
