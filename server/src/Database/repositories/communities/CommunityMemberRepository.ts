@@ -21,6 +21,7 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
             r.role as CommunityMemberRole,
             r.status as CommunityMemberStatus,
             r.joined_at ? new Date(r.joined_at) : new Date(),
+            r.username ?? "",
         );
     }
 
@@ -60,7 +61,13 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
         const res = await this.db.getReadConnection();
         if (!res) return new CommunityMember();
         try {
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND user_id = ?`, [communityId, memberId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT cm.user_id, cm.community_id, cm.role, cm.status, cm.joined_at, u.username
+                 FROM community_members cm
+                 JOIN users u ON u.user_id = cm.user_id
+                 WHERE cm.community_id = ? AND cm.user_id = ?`,
+                [communityId, memberId]
+            );
             return rows.length > 0 ? this.mapCommunityMember(rows[0]) : new CommunityMember();
         }
         catch (err) {
@@ -79,7 +86,14 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
                 type CountRow = RowDataPacket & { total: number | string };
                 const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ? AND role = ?`, [communityId, role]);
                 const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-                const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND role = ? LIMIT ${lim} OFFSET ${offset}`, [communityId, role]);
+                const [rows] = await res.conn.execute<RowDataPacket[]>(
+                    `SELECT cm.user_id, cm.community_id, cm.role, cm.status, cm.joined_at, u.username
+                     FROM community_members cm
+                     JOIN users u ON u.user_id = cm.user_id
+                     WHERE cm.community_id = ? AND cm.role = ?
+                     LIMIT ${lim} OFFSET ${offset}`,
+                    [communityId, role]
+                );
                 return {
                     members: rows.map((row) => this.mapCommunityMember(row)),
                     totalAmount
@@ -101,7 +115,14 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
             type CountRow = RowDataPacket & { total: number | string };
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ? AND status = ?`, [communityId, status]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? AND status = ? LIMIT ${lim} OFFSET ${offset}`, [communityId, status]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT cm.user_id, cm.community_id, cm.role, cm.status, cm.joined_at, u.username
+                 FROM community_members cm
+                 JOIN users u ON u.user_id = cm.user_id
+                 WHERE cm.community_id = ? AND cm.status = ?
+                 LIMIT ${lim} OFFSET ${offset}`,
+                [communityId, status]
+            );
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
                 totalAmount
@@ -123,7 +144,14 @@ export class CommunityMemberRepository implements ICommunityMemberRepository {
             type CountRow = RowDataPacket & { total: number | string };
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM community_members WHERE community_id = ?`, [communityId]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-            const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM community_members WHERE community_id = ? LIMIT ${lim} OFFSET ${offset}`, [communityId]);
+            const [rows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT cm.user_id, cm.community_id, cm.role, cm.status, cm.joined_at, u.username
+                 FROM community_members cm
+                 JOIN users u ON u.user_id = cm.user_id
+                 WHERE cm.community_id = ?
+                 LIMIT ${lim} OFFSET ${offset}`,
+                [communityId]
+            );
             return {
                 members: rows.map((row) => this.mapCommunityMember(row)),
                 totalAmount

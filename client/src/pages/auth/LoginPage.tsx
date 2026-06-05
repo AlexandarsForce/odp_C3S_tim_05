@@ -32,7 +32,7 @@ export default function LoginPage() {
   }, [isAuthenticated, user, navigate]);
 
   const inputCls = (err?: string) =>
-    `w-full bg-pn-bg border-[1.5px] rounded-[11px] px-4 py-3 text-[0.9rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-pn-sky focus:shadow-[0_0_0_3px_rgba(122,170,206,0.14)] transition-all ${
+    `w-full bg-pn-bg border-[1.5px] rounded-[11px] px-4 py-3 text-[0.9rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-pn-sky focus:bg-pn-white focus:shadow-[0_0_0_4px_rgba(122,170,206,0.24)] transition-all ${
       err ? "border-pn-red shadow-[0_0_0_3px_rgba(192,57,43,0.1)]" : "border-pn-border"
     }`;
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
                 {fieldErrors.password && <ErrorLine message={fieldErrors.password} />}
               </div>
               <button type="submit" disabled={loading}
-                className="w-full bg-pn-steel text-white font-semibold text-[0.95rem] py-3 rounded-[11px] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(53,88,114,0.24)] hover:bg-[#2a4760] hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(53,88,114,0.3)] transition-all mt-5 disabled:opacity-50 disabled:cursor-not-allowed">
+                className="w-full bg-pn-steel text-white font-semibold text-[0.95rem] py-3 rounded-[11px] flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(53,88,114,0.16)] hover:bg-[#2a4760] hover:-translate-y-[1px] hover:shadow-[0_6px_18px_rgba(53,88,114,0.22)] transition-all mt-5 disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? (
                   <><div className="w-4 h-4 border-2.5 border-[rgba(255,255,255,0.35)] border-t-white rounded-full animate-spin" /> Signing in...</>
                 ) : (

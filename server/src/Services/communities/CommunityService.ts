@@ -31,6 +31,7 @@ export class CommunityService implements ICommunityService {
       community.type,
       community.createdAt,
       community.updatedAt,
+      community.memberCount,
     );
   }
 
