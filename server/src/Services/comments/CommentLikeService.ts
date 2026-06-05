@@ -1,4 +1,3 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
 import { CommentLikeDto } from "../../Domain/DTOs/comments/CommentLikeDto";
 import { CreateCommentLikeDto } from "../../Domain/DTOs/comments/CreateCommentLikeDto";
 import { ICommentLikeService } from "../../Domain/services/comments/ICommentLikeService";
@@ -36,12 +35,7 @@ export class CommentLikeService implements ICommentLikeService {
         return this.toCommentLikeDto(newLike);
     }
 
-    async getCommentLikes(userId: number, commentId: number): Promise<PaginatedListDto<CommentLikeDto>> {
-        const { likes, totalAmount } = await this.commentLikeRepository.findCommentLikesByCommentId(commentId);
-        return new PaginatedListDto(likes.map(l => this.toCommentLikeDto(l)), totalAmount);
-    }
-
-    async unlikeComment(userId: number, commentId: number): Promise<boolean> {
+async unlikeComment(userId: number, commentId: number): Promise<boolean> {
         const existingLike = await this.commentLikeRepository.isLikedByUser(commentId, userId);
         if (!existingLike) return false;
         const deleted = await this.commentLikeRepository.deleteCommentLike(commentId, userId);

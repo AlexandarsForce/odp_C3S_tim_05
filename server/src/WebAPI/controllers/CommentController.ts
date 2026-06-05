@@ -28,7 +28,7 @@ export class CommentController {
 
         this.router.patch("/comments/:id/report", authenticate, this.reportComment.bind(this));
 
-        this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this));
+this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this));
         this.router.delete("/comments/:id/like", authenticate, this.unlikeComment.bind(this));
     }
 
@@ -121,7 +121,7 @@ export class CommentController {
         res.status(200).json({ success: true, message: "Comment reported" });
     }
 
-    private async likeComment(req: Request, res: Response): Promise<void> {
+private async likeComment(req: Request, res: Response): Promise<void> {
         const commentId = parseInt(req.params.id as string, 10);
         if (isNaN(commentId)) { res.status(400).json({ success: false, message: "Invalid comment ID" }); return; }
         const result = await this.commentLikeService.likeComment(req.user!.id, commentId, new CreateCommentLikeDto(1));
