@@ -8,5 +8,6 @@ export class CommunityMember {
         public role: CommunityMemberRole = CommunityMemberRole.MEMBER,
         public status: CommunityMemberStatus = CommunityMemberStatus.ACTIVE,
         public joinedAt: Date = new Date(),
+        public username: string = "",
     ) {}
 }

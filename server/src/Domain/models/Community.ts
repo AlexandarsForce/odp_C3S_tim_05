@@ -11,5 +11,6 @@ export class Community {
         public type: CommunityType = CommunityType.PRIVATE,
         public createdAt: Date = new Date(),
         public updatedAt: Date = new Date(),
+        public memberCount: number = 0,
     ) {}
 }

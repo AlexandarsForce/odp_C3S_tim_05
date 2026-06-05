@@ -28,7 +28,8 @@ export class CommunityMemberService implements ICommunityMemberService {
             communityMember.communityId,
             communityMember.role,
             communityMember.status,
-            communityMember.joinedAt
+            communityMember.joinedAt,
+            communityMember.username
         );
     }
 

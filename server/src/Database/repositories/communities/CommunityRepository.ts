@@ -24,8 +24,20 @@ export class CommunityRepository implements ICommunityRepository {
       r.type as CommunityType,
       r.created_at ? new Date(r.created_at) : new Date(),
       r.updated_at ? new Date(r.updated_at) : new Date(),
+      Number(r.member_count ?? 0),
     );
   }
+
+  private readonly COMMUNITY_SELECT_WITH_COUNT = `
+    SELECT c.*, COALESCE(mc.member_count, 0) AS member_count
+      FROM communities c
+      LEFT JOIN (
+        SELECT community_id, COUNT(*) AS member_count
+          FROM community_members
+         WHERE status = 'active'
+         GROUP BY community_id
+      ) mc ON mc.community_id = c.community_id
+  `;
 
   async createCommunity(community: Community): Promise<Community> {
     const res = await this.db.getWriteConnection();
@@ -49,7 +61,10 @@ export class CommunityRepository implements ICommunityRepository {
     const res = await this.db.getReadConnection();
     if (!res) return new Community();
     try {
-    const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE community_id = ?`, [communityId]);
+    const [rows] = await res.conn.execute<RowDataPacket[]>(
+      `${this.COMMUNITY_SELECT_WITH_COUNT} WHERE c.community_id = ?`,
+      [communityId]
+    );
     return rows.length > 0 ? this.mapCommunity(rows[0]) : new Community();
     }
     catch (err) {
@@ -63,7 +78,10 @@ export class CommunityRepository implements ICommunityRepository {
     const res = await this.db.getReadConnection();
     if (!res) return new Community();
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE name = ?`, [name]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `${this.COMMUNITY_SELECT_WITH_COUNT} WHERE c.name = ?`,
+        [name]
+      );
       return rows.length > 0 ? this.mapCommunity(rows[0]) : new Community();
     }
     catch (err) {
@@ -82,7 +100,10 @@ export class CommunityRepository implements ICommunityRepository {
       type CountRow = RowDataPacket & { total: number | string };
       const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities WHERE type = ?`, [type]);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE type = ? ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`, [type]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `${this.COMMUNITY_SELECT_WITH_COUNT} WHERE c.type = ? ORDER BY c.name ASC LIMIT ${lim} OFFSET ${offset}`,
+        [type]
+      );
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount
@@ -104,7 +125,10 @@ export class CommunityRepository implements ICommunityRepository {
       type CountRow = RowDataPacket & { total: number | string };
       const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities WHERE owner_id = ?`, [ownerId]);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities WHERE owner_id = ? ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`, [ownerId]);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `${this.COMMUNITY_SELECT_WITH_COUNT} WHERE c.owner_id = ? ORDER BY c.name ASC LIMIT ${lim} OFFSET ${offset}`,
+        [ownerId]
+      );
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount
@@ -133,9 +157,15 @@ export class CommunityRepository implements ICommunityRepository {
       const [countRows] = await res.conn.execute<RowDataPacket[]>(countSql, [memberId]);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
-      const sql = `SELECT c.*
+      const sql = `SELECT c.*, COALESCE(mc.member_count, 0) AS member_count
                      FROM communities c
                      INNER JOIN community_members cm ON c.community_id = cm.community_id
+                     LEFT JOIN (
+                       SELECT community_id, COUNT(*) AS member_count
+                         FROM community_members
+                        WHERE status = 'active'
+                        GROUP BY community_id
+                     ) mc ON mc.community_id = c.community_id
                     WHERE cm.user_id = ? AND cm.status = 'active'
                     ORDER BY c.name ASC
                     LIMIT ${lim} OFFSET ${offset}`;
@@ -161,7 +191,9 @@ export class CommunityRepository implements ICommunityRepository {
       type CountRow = RowDataPacket & { total: number | string };
       const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM communities`);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-      const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM communities ORDER BY name ASC LIMIT ${lim} OFFSET ${offset}`);
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `${this.COMMUNITY_SELECT_WITH_COUNT} ORDER BY c.name ASC LIMIT ${lim} OFFSET ${offset}`
+      );
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount
