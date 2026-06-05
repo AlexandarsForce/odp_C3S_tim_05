@@ -118,42 +118,38 @@ export class CommunityRepository implements ICommunityRepository {
   }
 
   async findCommunityByMemberId(memberId: number, page: number, limit: number): Promise<{ communities: Community[], totalAmount: number }> {
-    const resReadMembers = await this.db.getReadConnection();
-    if (!resReadMembers) return { communities: [], totalAmount: 0 };
-    let communityIds: number[] = [];
+    const res = await this.db.getReadConnection();
+    if (!res) return { communities: [], totalAmount: 0 };
     const offset = safeInt((page - 1) * limit);
     const lim = safeInt(limit);
     try {
-      const [rows] = await resReadMembers.conn.execute<RowDataPacket[]>(`SELECT community_id FROM community_members WHERE user_id = ? LIMIT ${lim} OFFSET ${offset}`, [memberId]);
-      communityIds = rows.map((row) => row.community_id);
-      if (communityIds.length === 0) return { communities: [], totalAmount: 0 };
-    }
-    catch (err) {
-      this.logger.error("CommunityRepository", "findCommunityByMemberId failed fetching member communities", err);
-      return { communities: [], totalAmount: 0 };
-    }
-    finally { resReadMembers.conn.release(); }
-
-    const resReadCommunities = await this.db.getReadConnection();
-    if (!resReadCommunities) return { communities: [], totalAmount: 0 };
-    try {
-      const placeholders = communityIds.map(() => '?').join(',');
-      const sql = `SELECT * FROM communities WHERE community_id IN (${placeholders}) ORDER BY name ASC`;
       type CountRow = RowDataPacket & { total: number | string };
-      const countSql = `SELECT COUNT(*) as total FROM communities WHERE community_id IN (${placeholders})`;
-      const [countRows] = await resReadCommunities.conn.execute<RowDataPacket[]>(countSql, communityIds);
+      // Only ACTIVE memberships count as "my communities"
+      // (pending requests / banned rows must NOT appear in the user's list)
+      const countSql = `SELECT COUNT(*) as total
+                          FROM community_members cm
+                          INNER JOIN communities c ON cm.community_id = c.community_id
+                         WHERE cm.user_id = ? AND cm.status = 'active'`;
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(countSql, [memberId]);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
-      const [rows] = await resReadCommunities.conn.execute<RowDataPacket[]>(sql, communityIds);
+
+      const sql = `SELECT c.*
+                     FROM communities c
+                     INNER JOIN community_members cm ON c.community_id = cm.community_id
+                    WHERE cm.user_id = ? AND cm.status = 'active'
+                    ORDER BY c.name ASC
+                    LIMIT ${lim} OFFSET ${offset}`;
+      const [rows] = await res.conn.execute<RowDataPacket[]>(sql, [memberId]);
       return {
         communities: rows.map((row) => this.mapCommunity(row)),
         totalAmount
       };
     }
     catch (err) {
-      this.logger.error("CommunityRepository", "findCommunityByMemberId failed fetching communities", err);
+      this.logger.error("CommunityRepository", "findCommunityByMemberId failed", err);
       return { communities: [], totalAmount: 0 };
     }
-    finally { resReadCommunities.conn.release(); }
+    finally { res.conn.release(); }
   }
 
   async findAllCommunities(page: number, limit: number): Promise<{ communities: Community[]; totalAmount: number; }> {
