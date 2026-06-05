@@ -27,6 +27,7 @@ export class CommentLikeRepository implements ICommentLikeRepository {
         `INSERT INTO comment_likes (user_id, comment_id, liked) VALUES (?, ?, ?)`,
         [like.userId, commentId, like.liked]
       );
+      if (result.affectedRows === 0) return new CommentLike();
       return new CommentLike(like.userId, commentId, like.liked, new Date());
     } catch (err) {
       this.logger.error("CommentLikeRepository", "addCommentLike failed", err);
@@ -36,47 +37,7 @@ export class CommentLikeRepository implements ICommentLikeRepository {
     }
   }
 
-  async findCommentLikesByCommentId(commentId: number): Promise<{ likes: CommentLike[], totalAmount: number }> {
-    const res = await this.db.getReadConnection();
-    if (!res) return { likes: [], totalAmount: 0 };
-    try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comment_likes WHERE comment_id = ? ORDER BY liked_at DESC`, 
-        [commentId]
-      );
-      return {
-        likes: rows.map((row) => this.mapCommentLike(row)),
-        totalAmount: rows.length
-      };
-    } catch (err) {
-      this.logger.error("CommentLikeRepository", "findCommentLikesByCommentId failed", err);
-      return { likes: [], totalAmount: 0 };
-    } finally { 
-      res.conn.release(); 
-    }
-  }
-
-  async findCommentLikesByUserId(userId: number): Promise<{ likes: CommentLike[], totalAmount: number }> {
-    const res = await this.db.getReadConnection();
-    if (!res) return { likes: [], totalAmount: 0 };
-    try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comment_likes WHERE user_id = ? ORDER BY liked_at DESC`, 
-        [userId]
-      );
-      return {
-        likes: rows.map((row) => this.mapCommentLike(row)),
-        totalAmount: rows.length
-      };
-    } catch (err) {
-      this.logger.error("CommentLikeRepository", "findCommentLikesByUserId failed", err);
-      return { likes: [], totalAmount: 0 };
-    } finally { 
-      res.conn.release(); 
-    }
-  }
-
-  async isLikedByUser(commentId: number, userId: number): Promise<boolean> {
+async isLikedByUser(commentId: number, userId: number): Promise<boolean> {
     const res = await this.db.getReadConnection();
     if (!res) return false;
     try {

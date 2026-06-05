@@ -3,9 +3,7 @@ import { CommentLike } from "../../models/CommentLike";
 export interface ICommentLikeRepository {
   addCommentLike(commentId: number, like: CommentLike): Promise<CommentLike>;
 
-  findCommentLikesByCommentId(commentId: number): Promise<{ likes: CommentLike[], totalAmount: number }>;
-  findCommentLikesByUserId(userId: number): Promise<{ likes: CommentLike[], totalAmount: number }>;
-  isLikedByUser(commentId: number, userId: number): Promise<boolean>;
+isLikedByUser(commentId: number, userId: number): Promise<boolean>;
 
   updateCommentLike(commentId: number, like: CommentLike): Promise<boolean>;
 
