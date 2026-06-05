@@ -1,10 +1,12 @@
 import { Request, Response, Router } from "express";
 import { ICommentService } from "../../Domain/services/comments/ICommentService";
 import { ICommentLikeService } from "../../Domain/services/comments/ICommentLikeService";
+import { IPostService } from "../../Domain/services/posts/IPostService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
 import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
 import { UserRole } from "../../Domain/enums/UserRole";
 import { ICommunityMemberService } from "../../Domain/services/communities/ICommunityMemberService";
+import { CommunityAccessResult } from "../../Domain/enums/CommunityAccessResult";
 import { CreateCommentDto } from "../../Domain/DTOs/comments/CreateCommentDto";
 import { UpdateCommentDto } from "../../Domain/DTOs/comments/UpdateCommentDto";
 import { CreateCommentLikeDto } from "../../Domain/DTOs/comments/CreateCommentLikeDto";
@@ -17,6 +19,7 @@ export class CommentController {
         private readonly commentService: ICommentService,
         private readonly commentLikeService: ICommentLikeService,
         private readonly communityMemberService: ICommunityMemberService,
+        private readonly postService: IPostService,
     ) {
         this.router.get("/posts/:postId/comments", authenticate, this.getPostComments.bind(this));
         this.router.post("/posts/:postId/comments", authenticate, this.createComment.bind(this));
@@ -37,6 +40,17 @@ this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this)
     private async getPostComments(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.postId as string, 10);
         if (isNaN(postId)) { res.status(400).json({ success: false, message: "Invalid post ID" }); return; }
+
+        // Private-community gate — resolve post → community → check access
+        const post = await this.postService.getPostDetails(postId);
+        if (post.id === 0) { res.status(404).json({ success: false, message: "Post not found" }); return; }
+        const isAdmin = req.user!.role === UserRole.ADMIN;
+        const access = await this.communityMemberService.canViewPrivateContent(req.user!.id, post.communityId, isAdmin);
+        if (access === CommunityAccessResult.Forbidden) {
+            res.status(403).json({ success: false, message: "This post is in a private community — join it to see the comments" });
+            return;
+        }
+
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 100);
         const sortBy = req.query.sortBy === 'likesCount' ? 'likesCount' : 'createdAt';

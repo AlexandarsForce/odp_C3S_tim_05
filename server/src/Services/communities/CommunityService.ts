@@ -42,8 +42,14 @@ export class CommunityService implements ICommunityService {
         const created = await this.communityRepository.createCommunity(community);
         if (created.id === 0) return { result: CreateCommunityResult.Unavailable };
 
+        // Atomic guarantee: the creator MUST become the first moderator-member.
+        // If member insert fails, roll back the community so we never leave an empty/orphan one.
         const ownerMember = new CommunityMember(userId, created.id, CommunityMemberRole.MODERATOR, CommunityMemberStatus.ACTIVE);
-        await this.communityMemberRepository.addCommunityMember(created.id, ownerMember);
+        const memberAdded = await this.communityMemberRepository.addCommunityMember(created.id, ownerMember);
+        if (!memberAdded) {
+            await this.communityRepository.deleteCommunity(created.id);
+            return { result: CreateCommunityResult.Unavailable };
+        }
         await this.auditService.log({ userId, action: "COMMUNITY_CREATED", details: "communities" });
         return { result: CreateCommunityResult.Success, community: this.toDto(created) };
     }
