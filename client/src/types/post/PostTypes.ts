@@ -3,6 +3,7 @@ export type PostDto = {
   authorId: number;
   authorUsername?: string;
   communityId: number;
+  communityName?: string;
   title: string;
   content: string;
   mediaAttachment?: string;
@@ -10,4 +11,18 @@ export type PostDto = {
   likesCount: number;
   commentsCount: number;
   tags?: string[];
+  tagIds?: number[];
+};
+
+export type CreatePostInput = {
+  communityId: number;
+  title: string;
+  content: string;
+  mediaAttachment?: string;
+};
+
+export type UpdatePostInput = {
+  title: string;
+  content: string;
+  mediaAttachment?: string;
 };

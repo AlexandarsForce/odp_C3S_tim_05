@@ -1,1 +1,4 @@
 **/.env
+
+# Claude Code skills (local-only, not for repo)
+.claude/skills/ui-ux-pro-max/

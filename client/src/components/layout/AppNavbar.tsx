@@ -1,37 +1,39 @@
-import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuthHook";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "../ui/dropdown-menu";
 
 export function AppNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [menuOpen]);
 
   const handleSignOut = async () => {
-    setMenuOpen(false);
     await logout();
     navigate("/", { replace: true });
   };
 
   const linkCls = ({ isActive }: { isActive: boolean }) =>
-    `text-[0.875rem] font-medium px-3 py-[6px] rounded-lg transition-colors ${
-      isActive ? "font-semibold text-pn-steel bg-[rgba(53,88,114,0.09)]" : "text-pn-muted hover:text-pn-steel"
+    `relative text-[0.875rem] font-medium px-3 py-[6px] rounded-lg transition-colors ${
+      isActive ? "font-semibold text-pn-steel" : "text-pn-muted hover:text-pn-steel"
     }`;
 
-  const menuItemCls =
-    "flex items-center gap-[10px] w-full text-left px-3 py-[7px] text-[0.83rem] text-pn-navy hover:bg-[rgba(122,170,206,0.12)] transition-colors";
+  const TubeLight = () => (
+    <>
+      <span aria-hidden="true" className="absolute inset-0 -z-10 bg-[rgba(122,170,206,0.12)] rounded-lg" />
+      <span aria-hidden="true" className="absolute left-1/2 -translate-x-1/2 -bottom-[3px] w-7 h-[2px] bg-pn-sky rounded-full">
+        <span className="absolute -inset-x-3 -inset-y-[7px] bg-pn-sky opacity-35 rounded-full blur-md" />
+        <span className="absolute -inset-x-1 -inset-y-[3px] bg-pn-sky opacity-40 rounded-full blur-sm" />
+        <span className="absolute inset-0 bg-pn-pale opacity-90 rounded-full" />
+      </span>
+    </>
+  );
+
+  const itemIconCls = "text-pn-lm shrink-0";
 
   return (
     <nav className="sticky top-0 z-100 bg-[rgba(245,247,238,0.94)] backdrop-blur-[16px] border-b border-pn-border px-6 shadow-[0_1px_0_rgba(53,88,114,0.03)]">
@@ -50,9 +52,15 @@ export function AppNavbar() {
         </Link>
 
         <div className="flex gap-1 items-center">
-          <NavLink to="/feed" className={linkCls}>Feed</NavLink>
-          <NavLink to="/my-communities" className={linkCls}>Communities</NavLink>
-          <NavLink to="/explore" className={linkCls}>Explore</NavLink>
+          <NavLink to="/feed" className={linkCls}>
+            {({ isActive }) => (<>Feed{isActive && <TubeLight />}</>)}
+          </NavLink>
+          <NavLink to="/my-communities" className={linkCls}>
+            {({ isActive }) => (<>Communities{isActive && <TubeLight />}</>)}
+          </NavLink>
+          <NavLink to="/explore" className={linkCls}>
+            {({ isActive }) => (<>Explore{isActive && <TubeLight />}</>)}
+          </NavLink>
           <NavLink to="/posts/new"
             className="flex items-center gap-[6px] text-[0.875rem] font-semibold text-white bg-pn-sky px-[14px] py-[6px] rounded-lg hover:bg-pn-steel transition-colors ml-2">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8">
@@ -62,44 +70,31 @@ export function AppNavbar() {
           </NavLink>
         </div>
 
-        <div className="relative shrink-0" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            className={`inline-flex items-center gap-[9px] bg-pn-white border rounded-full pr-[12px] pl-[3px] py-[3px] transition-all duration-200 ${
-              menuOpen
-                ? "border-pn-sky shadow-[0_4px_14px_rgba(122,170,206,0.22)]"
-                : "border-pn-border hover:border-pn-sky"
-            }`}
-          >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[0.78rem] font-bold text-white shrink-0">
-              {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
-            </div>
-            <span className="text-[0.82rem] font-semibold text-pn-navy truncate max-w-[140px]">{user?.username ?? "user"}</span>
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              className={`text-pn-muted shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${menuOpen ? "rotate-180" : ""}`}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group inline-flex items-center gap-[9px] bg-pn-white border rounded-full pr-[12px] pl-[3px] py-[3px] border-pn-border hover:border-pn-sky transition-all duration-200 data-[state=open]:border-pn-sky data-[state=open]:shadow-[0_4px_14px_rgba(122,170,206,0.22)]"
             >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[0.78rem] font-bold text-white shrink-0">
+                {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
+              </div>
+              <span className="text-[0.82rem] font-semibold text-pn-navy truncate max-w-[140px]">{user?.username ?? "user"}</span>
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="text-pn-muted shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-data-[state=open]:rotate-180"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          </DropdownMenuTrigger>
 
-          <div
-            role="menu"
-            aria-hidden={!menuOpen}
-            className={`absolute top-full right-0 w-[210px] mt-[8px] bg-pn-white border border-pn-border rounded-xl shadow-[0_14px_36px_rgba(53,88,114,0.16)] overflow-hidden origin-top-right transition-all duration-200 ease-out ${
-              menuOpen
-                ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-                : "opacity-0 -translate-y-1 scale-95 pointer-events-none"
-            }`}
-          >
+          <DropdownMenuContent className="p-0">
             <div className="flex items-center gap-[10px] px-3 pt-3 pb-[10px] border-b border-pn-border bg-[rgba(247,248,240,0.55)]">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[0.78rem] font-bold text-white shrink-0">
                 {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
@@ -111,32 +106,35 @@ export function AppNavbar() {
             </div>
 
             <div className="py-[5px]">
-              <Link to="/profile/me" onClick={() => setMenuOpen(false)} className={menuItemCls}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pn-lm shrink-0">
+              <DropdownMenuItem onSelect={() => navigate("/profile/me")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={itemIconCls}>
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
                 My profile
-              </Link>
-              <Link to="/settings" onClick={() => setMenuOpen(false)} className={menuItemCls}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pn-lm shrink-0">
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/settings")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={itemIconCls}>
                   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
                 Settings
-              </Link>
-              <div className="border-t border-pn-border my-[5px]" />
-              <button type="button" onClick={handleSignOut} className={`${menuItemCls} text-pn-red hover:bg-[rgba(155,58,58,0.08)]`}>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={handleSignOut}
+                className="text-pn-red focus:bg-[rgba(155,58,58,0.08)]"
+              >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-80">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
                 Sign out
-              </button>
+              </DropdownMenuItem>
             </div>
-          </div>
-        </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </nav>
   );
