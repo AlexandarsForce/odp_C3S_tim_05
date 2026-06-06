@@ -3,6 +3,12 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { postApi } from "../../api_services/posts/PostAPIService";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../../components/ui/dropdown-menu";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
 export default function CreatePostPage() {
@@ -55,37 +61,65 @@ export default function CreatePostPage() {
       <AppNavbar />
 
       <div className="max-w-[800px] mx-auto px-6 py-9 pb-20">
-        <div className="flex items-center gap-[6px] text-[0.78rem] text-pn-lm mb-[18px]">
-          <Link to="/feed" className="text-pn-lm hover:text-pn-steel">Feed</Link>
-          <span>›</span>
-          {communityId ? (
-            <Link to={`/community/${communityId}`} className="text-pn-lm hover:text-pn-steel">
-              {myCommunities.find((c) => c.id === communityId)?.name ?? "Community"}
-            </Link>
-          ) : <span className="text-pn-lm">Community</span>}
-          <span>›</span>
-          <span className="text-pn-steel font-semibold">Create Post</span>
-        </div>
-
-        <div className="inline-flex items-center gap-2 bg-pn-white border border-pn-border rounded-full px-4 py-[6px] text-[0.75rem] font-semibold text-pn-steel uppercase tracking-wider mb-5">
-          <span className="w-[7px] h-[7px] rounded-full bg-pn-sky" />
+        <div className="inline-flex items-center gap-2 bg-pn-white border border-pn-border rounded-full px-5 py-[9px] text-[0.9rem] font-semibold text-pn-steel uppercase tracking-wider mb-4">
+          <span className="w-[9px] h-[9px] rounded-full bg-pn-sky" />
           New Post
         </div>
-        <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.8rem,4vw,2.4rem)] font-bold text-pn-navy mb-[6px]">Create a Post</h1>
-        <p className="text-[0.9rem] text-pn-muted mb-7">
-          Posting in <select value={communityId} onChange={(e) => setCommunityId(Number(e.target.value))}
-            className="text-pn-steel font-semibold bg-transparent border-none outline-none cursor-pointer">
-            <option value={0}>Select a community</option>
-            {myCommunities.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          {communityId > 0 && <> · Visible to all members</>}
+
+        <p className="font-['Cormorant_Garamond',serif] italic text-[1rem] text-pn-navy/85 leading-[1.5] mb-5 max-w-[560px]">
+          Write something <span className="text-pn-steel">valuable</span> for the community — no pressure, just the good stuff.
         </p>
 
+        <div className="flex items-center gap-[6px] flex-wrap text-[0.9rem] text-pn-muted mb-7">
+          <span>Posting in</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-[6px] bg-pn-white border border-pn-border rounded-lg px-3 py-[6px] text-[0.85rem] font-semibold text-pn-steel hover:border-pn-sky hover:bg-[rgba(122,170,206,0.06)] focus:outline-none focus:border-pn-sky focus:shadow-[0_0_0_4px_rgba(122,170,206,0.18)] transition-all cursor-pointer"
+              >
+                {communityId > 0
+                  ? myCommunities.find((c) => c.id === communityId)?.name ?? "Select a community"
+                  : "Select a community"}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="min-w-[220px] bg-pn-white border border-pn-border rounded-xl p-[6px] shadow-[0_12px_30px_rgba(53,88,114,0.14)] z-50"
+            >
+              {myCommunities.length === 0 && (
+                <div className="px-3 py-2 text-[0.82rem] text-pn-lm italic">No communities yet</div>
+              )}
+              {myCommunities.map((c) => {
+                const active = c.id === communityId;
+                return (
+                  <DropdownMenuItem
+                    key={c.id}
+                    onSelect={() => setCommunityId(c.id)}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[0.86rem] cursor-pointer outline-none transition-colors ${
+                      active
+                        ? "bg-[rgba(122,170,206,0.16)] text-pn-navy font-semibold"
+                        : "text-pn-muted hover:bg-pn-bg hover:text-pn-navy"
+                    }`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                    {active && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-pn-steel shrink-0">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {communityId > 0 && <span>· Visible to all members</span>}
+        </div>
+
         <div className="bg-pn-white border border-pn-border rounded-[24px] p-9 max-sm:p-5 shadow-[0_10px_32px_rgba(53,88,114,0.07)]">
-          <div className="font-['Cormorant_Garamond',serif] text-[1.3rem] font-semibold text-pn-navy mb-1">Post Content</div>
-          <p className="text-[0.82rem] text-pn-muted mb-6">Write something valuable for the community.</p>
 
           <div className="mb-5">
             <label className="flex items-center justify-between text-[0.82rem] font-semibold text-pn-steel mb-2">
