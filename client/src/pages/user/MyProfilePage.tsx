@@ -130,9 +130,17 @@ export default function MyProfilePage() {
 
           <div className="px-7 pb-6 max-sm:px-5">
             <div className="mt-5 mb-4 flex items-end justify-between gap-4 flex-wrap">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel border-[4px] border-pn-white flex items-center justify-center font-['Cormorant_Garamond',serif] text-[2.2rem] font-bold text-white shadow-[0_6px_18px_rgba(53,88,114,0.2)] shrink-0">
-                {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
-              </div>
+              {profile?.profilePicture && (profile.profilePicture.startsWith("data:") || profile.profilePicture.startsWith("http")) ? (
+                <img
+                  src={profile.profilePicture}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-[4px] border-pn-white shadow-[0_6px_18px_rgba(53,88,114,0.2)] shrink-0 bg-pn-bg"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel border-[4px] border-pn-white flex items-center justify-center font-['Cormorant_Garamond',serif] text-[2.2rem] font-bold text-white shadow-[0_6px_18px_rgba(53,88,114,0.2)] shrink-0">
+                  {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
+                </div>
+              )}
 
               <div className="flex gap-2 mb-1">
                 <Link
