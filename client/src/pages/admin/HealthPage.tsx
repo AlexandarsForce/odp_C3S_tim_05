@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { AdminLayout } from "../../components/admin/AdminLayout";
+import { PageHeaderPill } from "../../components/admin/PageHeaderPill";
 import { adminApi } from "../../api_services/admin/AdminAPIService";
 import type { DbNodeDto } from "../../types/admin/AdminTypes";
 
@@ -30,24 +30,19 @@ export default function HealthPage() {
 
   return (
     <AdminLayout>
-      <div className="mb-[22px]">
-        <div className="flex items-center gap-[6px] text-[0.78rem] text-pn-lm mb-[10px]">
-          <Link to="/admin" className="text-pn-lm hover:text-pn-steel">Admin</Link>
-          <span>›</span>
-          <span style={{ color: "var(--color-pn-steel)", fontWeight: 600 }}>Health Dashboard</span>
-        </div>
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.8rem,3vw,2.4rem)] font-bold text-pn-navy mb-1">Health Dashboard</h1>
-            <p className="text-[0.875rem] text-pn-muted">Real-time status of all database nodes in the distributed cluster.</p>
-          </div>
-          <div className="text-right">
-            <button onClick={fetchHealth}
-              className="inline-flex items-center gap-[6px] text-[0.82rem] font-semibold text-pn-steel bg-pn-white border border-pn-border px-[18px] py-[9px] rounded-[10px] hover:border-pn-sky transition-colors cursor-pointer">
-              ↻ Refresh
-            </button>
-            <div className="text-[0.75rem] text-pn-lm mt-1">Last updated: {lastUpdated || "—"}</div>
-          </div>
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+        <PageHeaderPill
+          label="DB Health"
+          dotClass="bg-pn-green"
+          textClass="text-pn-green"
+          className=""
+        />
+        <div className="flex items-center gap-3">
+          <div className="text-[0.75rem] text-pn-lm">Last updated: {lastUpdated || "—"}</div>
+          <button onClick={fetchHealth}
+            className="inline-flex items-center gap-[6px] text-[0.82rem] font-semibold text-pn-steel bg-pn-white border border-pn-border px-[18px] py-[9px] rounded-[10px] hover:border-pn-sky transition-colors cursor-pointer">
+            ↻ Refresh
+          </button>
         </div>
       </div>
 
@@ -164,14 +159,14 @@ export default function HealthPage() {
 
       <div className="bg-pn-white border border-pn-border rounded-[16px] px-[22px] py-[18px]">
         <div className="text-[0.78rem] font-bold text-pn-lm uppercase tracking-[0.1em] mb-3">Status Legend</div>
-        <div className="flex gap-6 flex-wrap">
+        <div className="flex flex-col gap-[10px]">
           {[
             { cls: "text-pn-green bg-[rgba(44,122,75,0.1)] border-[rgba(44,122,75,0.2)]", dot: "bg-pn-green", label: "Healthy", desc: "Node available, responding within timeout threshold" },
             { cls: "text-[#7A6020] bg-[rgba(195,150,40,0.1)] border-[rgba(195,150,40,0.2)]", dot: "bg-[#B87E20]", label: "Degraded", desc: "Node running but response >500ms or replication lag detected" },
             { cls: "text-pn-red bg-[rgba(180,60,60,0.1)] border-[rgba(180,60,60,0.2)]", dot: "bg-[#C0392B]", label: "Unreachable", desc: "Node is down and excluded from connection pool" },
           ].map((s) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-[5px] text-[0.7rem] font-bold uppercase px-[11px] py-[4px] rounded-full border ${s.cls}`}>
+            <div key={s.label} className="flex items-center gap-3">
+              <span className={`inline-flex items-center justify-center gap-[5px] w-[120px] shrink-0 text-[0.7rem] font-bold uppercase px-[11px] py-[4px] rounded-full border ${s.cls}`}>
                 <span className={`w-[6px] h-[6px] rounded-full ${s.dot}`} />{s.label}
               </span>
               <span className="text-[0.8rem] text-pn-muted">{s.desc}</span>
