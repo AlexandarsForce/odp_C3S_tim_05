@@ -1,4 +1,6 @@
 **/.env
 
-# Claude Code skills (local-only, not for repo)
-.claude/skills/ui-ux-pro-max/
+# Claude Code — local-only files, ne idu na GitHub
+.claude/settings.local.json
+.claude/skills/
+.claude/plugins/

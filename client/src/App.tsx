@@ -9,6 +9,10 @@ import NotFoundPage from "./pages/not_found/NotFoundPage";
 import UserDashboard from "./pages/user/UserDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersPage from "./pages/admin/UsersPage";
+import AdminCommunitiesPage from "./pages/admin/CommunitiesPage";
+import AdminAuditPage from "./pages/admin/AuditPage";
+import AdminHealthPage from "./pages/admin/HealthPage";
+import AdminTagsPage from "./pages/admin/TagsPage";
 import PostDetailPage from "./pages/posts/PostDetailPage";
 
 import ExplorePage from "./pages/public/ExplorePage";
@@ -50,8 +54,12 @@ export default function App() {
       <Route path="/settings"                element={<ProtectedRoute requiredRole="user"><SettingsPage /></ProtectedRoute>} />
 
       {/* Admin routes */}
-      <Route path="/admin"       element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersPage /></ProtectedRoute>} />
+      <Route path="/admin"             element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/users"       element={<ProtectedRoute requiredRole="admin"><UsersPage /></ProtectedRoute>} />
+      <Route path="/admin/communities" element={<ProtectedRoute requiredRole="admin"><AdminCommunitiesPage /></ProtectedRoute>} />
+      <Route path="/admin/audit"       element={<ProtectedRoute requiredRole="admin"><AdminAuditPage /></ProtectedRoute>} />
+      <Route path="/admin/health"      element={<ProtectedRoute requiredRole="admin"><AdminHealthPage /></ProtectedRoute>} />
+      <Route path="/admin/tags"        element={<ProtectedRoute requiredRole="admin"><AdminTagsPage /></ProtectedRoute>} />
 
       <Route path="/404" element={<NotFoundPage />} />
       <Route path="*"    element={<Navigate to="/404" replace />} />
