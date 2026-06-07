@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, AlertCircle, RefreshCw } from "lucide-react";
 import { AdminLayout } from "../../components/admin/AdminLayout";
+import { PageHeaderPill } from "../../components/admin/PageHeaderPill";
+import { AdminKpiCard } from "../../components/admin/AdminKpiCard";
 import { adminApi } from "../../api_services/admin/AdminAPIService";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
@@ -96,8 +98,8 @@ export default function AdminCommunitiesPage() {
   return (
     <AdminLayout>
 
-      {/* ── SCENARIO A: Error ───────────────────────────────────────── */}
-      {error ? (
+      {/* ── SCENARIO A: Error ─── TEMP DISABLED to preview normal layout ── */}
+      {false && error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center select-none">
           {/* Halo */}
           <div className="relative flex items-center justify-center mb-6">
@@ -127,21 +129,18 @@ export default function AdminCommunitiesPage() {
       ) : (
       /* ── SCENARIO B: Normal (empty or populated) ────────────────── */
       <>
-        {/* Horizontal stat bar */}
-        <div className="inline-flex items-center gap-4 bg-pn-white border border-pn-border rounded-xl px-5 py-[14px] mb-7 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#7c6fc4]" />
-          <div className="p-[7px] rounded-[9px] bg-[rgba(124,111,196,0.14)]">
-            <Building2 className="h-5 w-5 text-[#7c6fc4]" />
-          </div>
-          <div>
-            <div className="text-[0.65rem] font-bold tracking-[0.11em] uppercase text-[rgba(124,111,196,0.75)] mb-2">
-              Total Communities
-            </div>
-            <div className="font-['DM_Sans',sans-serif] text-[1.75rem] font-bold text-pn-navy leading-none tabular-nums">
-              {total}
-            </div>
-          </div>
-        </div>
+        <PageHeaderPill
+          label="Communities"
+          dotClass="bg-[#7c6fc4]"
+          textClass="text-[#7c6fc4]"
+        />
+
+        <AdminKpiCard
+          Icon={Building2}
+          label="Total Communities"
+          value={total.toString()}
+          accentHex="#7c6fc4"
+        />
 
         {/* Search */}
         <div className="mb-5">

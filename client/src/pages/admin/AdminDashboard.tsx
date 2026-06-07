@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, Building2, FileText, ClipboardList } from "lucide-react";
+import { Users, Building2, FileText, ClipboardList, ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AdminLayout } from "../../components/admin/AdminLayout";
 import { AdminStatCard, ActivityRow } from "../../components/admin/AdminStatCard";
@@ -79,24 +79,37 @@ function PanelEmptyState({
 
 type TabId = "communities" | "posts" | "activity";
 
-const TABS: { id: TabId; label: string; to: string; activeClasses: string }[] = [
+const TABS: {
+  id: TabId;
+  label: string;
+  to: string;
+  activeText: string;
+  activeBg: string;
+  underline: string;
+}[] = [
   {
     id: "communities",
     label: "Communities",
     to: "/admin/communities",
-    activeClasses: "text-[#7c6fc4] border-b-2 border-[#7c6fc4]",
+    activeText: "text-[#7c6fc4]",
+    activeBg: "bg-[rgba(124,111,196,0.1)]",
+    underline: "bg-[#7c6fc4]",
   },
   {
     id: "posts",
     label: "Posts",
     to: "/admin/posts",
-    activeClasses: "text-pn-green border-b-2 border-pn-green",
+    activeText: "text-pn-green",
+    activeBg: "bg-[rgba(74,174,104,0.1)]",
+    underline: "bg-pn-green",
   },
   {
     id: "activity",
     label: "Activity",
     to: "/admin/audit",
-    activeClasses: "text-[#d97706] border-b-2 border-[#d97706]",
+    activeText: "text-[#d97706]",
+    activeBg: "bg-[rgba(217,119,6,0.1)]",
+    underline: "bg-[#d97706]",
   },
 ];
 
@@ -145,11 +158,11 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="mb-7">
-        <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.8rem,3vw,2.4rem)] font-bold text-pn-navy mb-1">
+        <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.35rem,2.2vw,1.7rem)] font-bold text-pn-navy mb-[3px]">
           {greet()},{" "}
           <span className="text-pn-steel">{user?.username ?? "admin"}</span>
         </h1>
-        <p className="text-[0.875rem] text-pn-muted">
+        <p className="text-[0.875rem] italic text-pn-muted">
           PulseNet is yours to shape — keep communities healthy and the pulse strong.
         </p>
       </div>
@@ -197,28 +210,44 @@ export default function AdminDashboard() {
       {/* Combined recent panel */}
       <div className="rounded-xl border border-pn-border bg-pn-white shadow-sm">
         {/* Tab header */}
-        <div className="flex items-center justify-between border-b border-pn-border px-6">
-          <div className="flex">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`text-[0.85rem] font-medium px-4 py-4 transition-colors duration-150 cursor-pointer ${
-                  activeTab === tab.id
-                    ? tab.activeClasses
-                    : "text-pn-muted hover:text-pn-steel border-b-2 border-transparent"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="flex items-center justify-between border-b border-pn-border px-4">
+          <div className="flex items-center gap-1 py-2">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative text-[0.85rem] px-4 py-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? `${tab.activeText} ${tab.activeBg} font-bold shadow-[0_1px_2px_rgba(0,0,0,0.04)]`
+                      : "text-pn-muted hover:text-pn-steel hover:bg-[rgba(53,88,114,0.05)] font-medium"
+                  }`}
+                >
+                  {tab.label}
+                  {isActive && (
+                    <span
+                      className={`absolute left-1/2 -translate-x-1/2 -bottom-[10px] h-[3px] w-8 rounded-t-full ${tab.underline}`}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <Link
-            to={activeTabMeta.to}
-            className="text-sm font-medium text-pn-steel hover:text-pn-navy transition-colors"
-          >
-            View all
-          </Link>
+          {activeTab !== "posts" && (
+            <Link
+              to={activeTabMeta.to}
+              className="inline-flex items-center h-9 px-4 py-2 rounded-lg text-sm font-medium text-pn-navy bg-pn-surface border border-pn-border shadow-sm shadow-black/5 hover:bg-[rgba(53,88,114,0.08)] hover:border-pn-steel/30 transition-colors cursor-pointer"
+            >
+              View all
+              <ArrowRight
+                className="-me-1 ms-2 opacity-60"
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+            </Link>
+          )}
         </div>
 
         {/* Tab content */}

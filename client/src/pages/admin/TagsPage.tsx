@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Tag, AlertCircle, RefreshCw } from "lucide-react";
 import { AdminLayout } from "../../components/admin/AdminLayout";
+import { PageHeaderPill } from "../../components/admin/PageHeaderPill";
+import { AdminKpiCard } from "../../components/admin/AdminKpiCard";
 import { AdminTable } from "../../components/admin/AdminTable";
 import { tagApi } from "../../api_services/tags/TagAPIService";
 import type { TagDto } from "../../types/tag/TagTypes";
@@ -37,8 +39,8 @@ export default function TagsPage() {
   return (
     <AdminLayout>
 
-      {/* ── SCENARIO A: Error ─────────────────────────────────────── */}
-      {error ? (
+      {/* ── SCENARIO A: Error ─── TEMP DISABLED to preview normal layout ── */}
+      {false && error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center select-none">
           <div className="relative flex items-center justify-center mb-6">
             <div className="absolute rounded-full bg-[rgba(180,60,60,0.1)]" style={{ width: "6rem", height: "6rem" }} />
@@ -65,21 +67,18 @@ export default function TagsPage() {
       ) : (
       /* ── SCENARIO B: Normal (empty or populated) ──────────────── */
       <>
-        {/* KPI card */}
-        <div className="inline-flex items-center gap-4 bg-pn-white border border-pn-border rounded-xl px-5 py-[14px] mb-7 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#7c6fc4]" />
-          <div className="p-[7px] rounded-[9px] bg-[rgba(124,111,196,0.14)]">
-            <Tag className="h-5 w-5 text-[#7c6fc4]" />
-          </div>
-          <div>
-            <div className="text-[0.65rem] font-bold tracking-[0.11em] uppercase text-[rgba(124,111,196,0.75)] mb-2">
-              Total Tags
-            </div>
-            <div className="font-['DM_Sans',sans-serif] text-[1.25rem] font-bold text-pn-navy leading-none tabular-nums">
-              {tags.length}
-            </div>
-          </div>
-        </div>
+        <PageHeaderPill
+          label="Tags"
+          dotClass="bg-[#0d9488]"
+          textClass="text-[#0d9488]"
+        />
+
+        <AdminKpiCard
+          Icon={Tag}
+          label="Total Tags"
+          value={tags.length.toString()}
+          accentHex="#0d9488"
+        />
 
         {/* Search */}
         <div className="mb-4">
