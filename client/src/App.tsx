@@ -40,18 +40,18 @@ export default function App() {
       <Route path="/community/:id"  element={<CommunityFeedPage />} />
       <Route path="/profile/:id"    element={<PublicProfilePage />} />
 
-      {/* User routes */}
-      <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><UserDashboard /></ProtectedRoute>} />
-      <Route path="/feed"      element={<ProtectedRoute requiredRole="user"><FeedPage /></ProtectedRoute>} />
-      <Route path="/posts/new"      element={<ProtectedRoute requiredRole="user"><CreatePostPage /></ProtectedRoute>} />
-      <Route path="/posts/:id"      element={<ProtectedRoute requiredRole="user"><PostDetailPage /></ProtectedRoute>} />
-      <Route path="/posts/:id/edit" element={<ProtectedRoute requiredRole="user"><EditPostPage /></ProtectedRoute>} />
-      <Route path="/my-communities"          element={<ProtectedRoute requiredRole="user"><MyCommunitiesPage /></ProtectedRoute>} />
-      <Route path="/community/create"        element={<ProtectedRoute requiredRole="user"><CreateCommunityPage /></ProtectedRoute>} />
-      <Route path="/community/:id/members"   element={<ProtectedRoute requiredRole="user"><CommunityMembersPage /></ProtectedRoute>} />
-      <Route path="/profile/me"              element={<ProtectedRoute requiredRole="user"><MyProfilePage /></ProtectedRoute>} />
-      <Route path="/profile/me/followers"    element={<ProtectedRoute requiredRole="user"><FollowersPage /></ProtectedRoute>} />
-      <Route path="/settings"                element={<ProtectedRoute requiredRole="user"><SettingsPage /></ProtectedRoute>} />
+      {/* User routes — protection removed for preview */}
+      <Route path="/dashboard" element={<UserDashboard />} />
+      <Route path="/feed"      element={<FeedPage />} />
+      <Route path="/posts/new"      element={<CreatePostPage />} />
+      <Route path="/posts/:id"      element={<PostDetailPage />} />
+      <Route path="/posts/:id/edit" element={<EditPostPage />} />
+      <Route path="/my-communities"          element={<MyCommunitiesPage />} />
+      <Route path="/community/create"        element={<CreateCommunityPage />} />
+      <Route path="/community/:id/members"   element={<CommunityMembersPage />} />
+      <Route path="/profile/me"              element={<MyProfilePage />} />
+      <Route path="/profile/me/followers"    element={<FollowersPage />} />
+      <Route path="/settings"                element={<SettingsPage />} />
 
       {/* Admin routes */}
       <Route path="/admin"             element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
