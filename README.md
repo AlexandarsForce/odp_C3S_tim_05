@@ -1,100 +1,61 @@
-# Project Template
+# PulseNet 🌐
 
-Full-stack TypeScript template with:
-- **Client**: React 19 + Vite + TailwindCSS v4 + React Router v7
-- **Server**: Node.js + Express 5 + TypeScript
-- **Database**: MySQL 8 with Master + 2 Slave replication via Docker
-- **Auth**: JWT-based authentication with role-based access control
+**PulseNet** is a **distributed, full-stack web application** built for community building and social networking. Designed as a **modern hybrid** that marries the structured discussion boards of **Reddit** with the community-centric spaces of **Discord**, PulseNet provides a **scalable environment** for real-time interactions, content sharing, and **distributed micro-communities**.
 
-## Stack
+---
 
-| Layer      | Technology                              |
-|------------|-----------------------------------------|
-| Frontend   | React, Vite, TailwindCSS, Axios         |
-| Backend    | Node.js, Express, TypeScript            |
-| Auth       | JWT (jsonwebtoken), bcryptjs            |
-| Database   | MySQL 8, mysql2, Master-Slave replication |
-| DevOps     | Docker, docker-compose                  |
+<p align="center">
+  <img src="picture.png" alt="PulseNet Banner" width="100%">
+</p>
 
-## Project Structure
+---
 
-```
-project/
-├── client/                  # React frontend (Vite)
-│   └── src/
-│       ├── api_services/    # Axios API service classes (Interface + Implementation)
-│       ├── components/      # Reusable UI components
-│       ├── contexts/        # React contexts (AuthContext)
-│       ├── helpers/         # Utility functions (localStorage wrapper)
-│       ├── hooks/           # Custom React hooks
-│       ├── models/          # Client-side DTOs / types
-│       ├── pages/           # Page components (admin/, user/, auth/, not_found/)
-│       └── types/           # TypeScript type definitions
-│
-├── server/                  # Express backend
-│   └── src/
-│       ├── Database/
-│       │   ├── connection/  # DbManager — Master/Slave pool with health checks
-│       │   └── repositories/ # Concrete repository implementations
-│       ├── Domain/          # Domain layer (no framework dependencies)
-│       │   ├── DTOs/        # Data Transfer Objects
-│       │   ├── constants/   # App-wide constants
-│       │   ├── enums/       # TypeScript enums
-│       │   ├── models/      # Domain entity classes
-│       │   ├── repositories/ # Repository interfaces (IXxxRepository)
-│       │   ├── services/    # Service interfaces (IXxxService)
-│       │   └── types/       # Shared types (JwtPayload, ValidationResult)
-│       ├── Middlewares/     # Express middlewares (auth, authorization)
-│       ├── Services/        # Service implementations
-│       └── WebAPI/
-│           ├── controllers/ # Express route controllers
-│           └── validators/  # Input validation functions
-│
-└── docker/                  # MySQL replication setup
-    ├── master/              # Master node config + init.sql
-    ├── slave1/              # Slave 1 config
-    ├── slave2/              # Slave 2 config
-    └── setup-replication.sh # Replication bootstrap script
-```
+## ❓ What is PulseNet & What is it Used For?
 
-## Getting Started
+PulseNet serves as a decentralized hub where users can connect based on shared interests rather than just personal friendships. The platform's social framework is engineered around **topic-driven hubs called Communities**. 
 
-### 1. Start the database
+Whether it is a public forum for discussing software development or a private, invitation-only space for a specific group, PulseNet offers a robust environment for structured, meaningful digital interactions. 
 
-```bash
-docker-compose up -d
-```
+### Core Platform Dynamics & User Flow:
+- **Discover & Connect:** Guests can browse public communities, while registered users unlock all communities and profiles of other users.
+- **The Community Ecosystem:** Users can create public or private communities, manage member permissions, and handle joining requests.
+- **Content & Tagging:** Support for Markdown posts with rich media. Posts use global, admin-curated tags for instant sorting and filtering.
+- **Threaded Conversations:** Organized hierarchical comments up to 2 levels deep with a soft-delete system to preserve reply context.
+- **Personalized Feed:** A time-sorted custom feed merging updates from a user's joined communities and followed creators.
+- **Governance:** Moderation tools for community creators to flag/delete content, backed by an overarching Admin Panel and full audit logs.
 
-### 2. Set up replication
+## 🚀 Tech Stack
 
-```bash
-docker cp docker/setup-replication.sh project_master:/setup.sh
-docker exec project_master sh /setup.sh
-```
+### Frontend
+- **Framework:** React + TypeScript
+- **State & Auth Management:** React Context API (`useAuth`), Custom Hooks
 
-### 3. Start the server
+### Backend
+- **Runtime & Framework:** Node.js + Express
+- **Database Driver:** `mysql2` (Connection Pooling)
+- **Authentication & Security:** JSON Web Tokens (JWT) & `bcrypt` for secure password hashing
+- **File Handling:** `multer` (processing profile pictures and avatars)
 
-```bash
-cd server
-cp .env.example .env   # fill in your values
-npm install
-npm run dev
-```
+### Distributed Database Layer
+- **MySQL Master Node:** Handles all write operations (`INSERT`, `UPDATE`, `DELETE`) and serves as a fallback for read operations.
+- **MySQL Slave Nodes (2 Instances):** Asynchronously replicated nodes dedicated to handling load-balanced read operations (`SELECT`).
 
-### 4. Start the client
+---
 
-```bash
-cd client
-npm install
-npm run dev
-```
+## 🏗️ System Architecture & Data Flow
 
-## Customisation Checklist
-
-- [ ] Rename `project_db` → your database name (docker-compose.yml, setup-replication.sh, .env.example)
-- [ ] Replace `Entity` / `entities` with your domain model name throughout
-- [ ] Update `UserRole` enum if you need different roles
-- [ ] Update nav items in `Layout.tsx` to match your routes
-- [ ] Add your domain-specific routes in `App.tsx`
-- [ ] Update table schema in `setup-replication.sh`
-- [ ] Replace `AppName` in `Layout.tsx` with your app name
+```text
+       [ CLIENT LAYER ]
+        React + TypeScript
+               │
+               ▼ HTTPS / REST API (JWT)
+       [ SERVER LAYER ]
+        Node.js + Express API
+        Middleware (Auth, RBAC)
+               │
+               ▼
+       [ DB ROUTER / LOAD BALANCER (db.ts) ]
+        Writes ──▶ MySQL Master (Read/Write)
+                    │
+                    ├─── REPL ──▶ MySQL Slave 1 (Read Only)
+                    └─── REPL ──▶ MySQL Slave 2 (Read Only)
