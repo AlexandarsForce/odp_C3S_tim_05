@@ -35,7 +35,7 @@ export const communityApi = {
   },
   async create(payload: CreateCommunityDto) {
     return axios.post<ApiResponse<CommunityDto>>(`${BASE}communities`, payload, { headers: authHeader() })
-      .then(r => r.data).catch(e => err(e, "Failed to create community"));
+      .then(r => r.data).catch(e => err<CommunityDto>(e, "Failed to create community"));
   },
   async update(id: number, payload: Partial<CreateCommunityDto>) {
     return axios.put<ApiResponse<void>>(`${BASE}communities/${id}`, payload, { headers: authHeader() })

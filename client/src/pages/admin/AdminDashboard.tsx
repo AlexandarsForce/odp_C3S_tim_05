@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { AdminLayout } from "../../components/admin/AdminLayout";
-import { AdminStatCard, AdminNavPanel } from "../../components/admin/AdminStatCard";
-import { BASE, authHeader } from "../../api_services/common/apiHelper";
-import { communityApi } from "../../api_services/communities/CommunityAPIService";
+import { AdminStatCard, AdminNavPanel, ActivityRow } from "../../components/admin/AdminStatCard";
+import { adminApi } from "../../api_services/admin/AdminAPIService";
+import type { AuditDto } from "../../types/admin/AdminTypes";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 import type { PostDto } from "../../types/post/PostTypes";
-import type { UserDto } from "../../models/user/UserTypes";
 
 const timeAgo = (date: string) => {
   const diff = Date.now() - new Date(date).getTime();
@@ -20,33 +18,35 @@ const timeAgo = (date: string) => {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ users: 0, communities: 0, posts: 0 });
+  const [stats, setStats] = useState({ users: 0, communities: 0, posts: 0, audits: 0 });
   const [recentCommunities, setRecentCommunities] = useState<CommunityDto[]>([]);
   const [recentPosts, setRecentPosts] = useState<PostDto[]>([]);
+  const [recentAudits, setRecentAudits] = useState<AuditDto[]>([]);
 
   useEffect(() => {
-    const headers = authHeader();
+    Promise.all([
+      adminApi.getAllUsers(1, 1),
+      adminApi.getAllCommunities(1, 4),
+      adminApi.getAllPosts(1, 3),
+      adminApi.getAuditLogs(1, 4),
+    ]).then(([usersRes, commRes, postRes, auditRes]) => {
+      const u = usersRes.success && usersRes.data ? usersRes.data.total : 0;
+      const c = commRes.success && commRes.data ? commRes.data.total : 0;
+      const p = postRes.success && postRes.data ? postRes.data.total : 0;
+      const a = auditRes.success && auditRes.data ? auditRes.data.total : 0;
+      setStats({ users: u, communities: c, posts: p, audits: a });
 
-    const usersReq = axios
-      .get<{ success: boolean; data?: UserDto[] }>(`${BASE}users/all`, { headers })
-      .then((r) => (r.data?.success ? r.data.data ?? [] : []))
-      .catch(() => [] as UserDto[]);
-
-    const commReq = communityApi.getAll(1, 4).catch(() => null);
-
-    const postsReq = axios
-      .get<{ success: boolean; data?: { items: PostDto[]; total: number } }>(`${BASE}posts/admin/all?page=1&limit=3`, { headers })
-      .then((r) => r.data?.data ?? { items: [] as PostDto[], total: 0 })
-      .catch(() => ({ items: [] as PostDto[], total: 0 }));
-
-    Promise.all([usersReq, commReq, postsReq]).then(([users, comm, posts]) => {
-      const commTotal = comm && comm.success && comm.data ? comm.data.total : 0;
-      const commItems = comm && comm.success && comm.data ? comm.data.items : [];
-      setStats({ users: users.length, communities: commTotal, posts: posts.total });
-      setRecentCommunities(commItems);
-      setRecentPosts(posts.items);
+      if (commRes.success && commRes.data) setRecentCommunities(commRes.data.items);
+      if (postRes.success && postRes.data) setRecentPosts(postRes.data.items);
+      if (auditRes.success && auditRes.data) setRecentAudits(auditRes.data.items);
     });
   }, []);
+
+  const handleDeletePost = async (id: number) => {
+    await adminApi.deletePost(id);
+    const r = await adminApi.getAllPosts(1, 3);
+    if (r.success && r.data) setRecentPosts(r.data.items);
+  };
 
   return (
     <AdminLayout>
@@ -60,10 +60,11 @@ export default function AdminDashboard() {
         <p className="text-[0.875rem] text-pn-muted">System overview and moderation tools for PulseNet.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-[14px] mb-6 max-md:grid-cols-2 max-sm:grid-cols-1">
+      <div className="grid grid-cols-4 gap-[14px] mb-6 max-md:grid-cols-2">
         <AdminStatCard label="Total Users" value={stats.users.toLocaleString()} />
         <AdminStatCard label="Communities" value={stats.communities.toLocaleString()} />
         <AdminStatCard label="Total Posts" value={stats.posts.toLocaleString()} />
+        <AdminStatCard label="Audit Entries" value={stats.audits.toLocaleString()} />
       </div>
 
       <div className="font-['Cormorant_Garamond',serif] text-[1.3rem] font-semibold text-pn-navy mb-[14px]">Admin Sections</div>
@@ -102,14 +103,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="font-['Cormorant_Garamond',serif] text-[1.3rem] font-semibold text-pn-navy mb-[14px]">Recent Posts</div>
-      <div className="bg-pn-white border border-pn-border rounded-[20px] overflow-hidden">
+      <div className="bg-pn-white border border-pn-border rounded-[20px] overflow-hidden mb-[18px]">
         {recentPosts.length === 0 ? (
           <div className="text-center py-6 text-[0.85rem] text-pn-muted">No posts yet.</div>
         ) : (
           <table className="w-full border-collapse text-[0.875rem]">
             <thead>
               <tr className="border-b border-pn-border">
-                {["Post", "Author", "Community", "Posted"].map((c) => (
+                {["Post", "Author", "Community", "Posted", "Actions"].map((c) => (
                   <th key={c} className="text-left px-4 py-3 text-[0.72rem] font-bold tracking-[0.09em] uppercase text-pn-lm">{c}</th>
                 ))}
               </tr>
@@ -123,10 +124,34 @@ export default function AdminDashboard() {
                   <td className="px-4 py-3 text-pn-muted">{p.authorUsername ?? `#${p.authorId}`}</td>
                   <td className="px-4 py-3 text-pn-muted">{p.communityName ?? `#${p.communityId}`}</td>
                   <td className="px-4 py-3 text-[0.8rem] text-pn-lm">{timeAgo(p.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => handleDeletePost(p.id)} className="text-[0.78rem] font-semibold text-pn-red bg-[rgba(180,60,60,0.08)] border border-[rgba(180,60,60,0.18)] px-3 py-[5px] rounded-[7px] hover:bg-[rgba(180,60,60,0.15)] transition-colors cursor-pointer">Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      <div className="font-['Cormorant_Garamond',serif] text-[1.3rem] font-semibold text-pn-navy mb-[14px] flex items-center justify-between">
+        Recent Activity
+        <Link to="/admin/audit" className="font-['DM_Sans',sans-serif] text-[0.8rem] font-semibold text-pn-steel hover:underline">Full log →</Link>
+      </div>
+      <div className="bg-pn-white border border-pn-border rounded-[20px] p-[22px]">
+        {recentAudits.length === 0 ? (
+          <div className="text-center py-6 text-[0.85rem] text-pn-muted">No activity recorded yet.</div>
+        ) : (
+          recentAudits.map((a) => (
+            <ActivityRow
+              key={a.id}
+              icon="📋"
+              text={a.action}
+              actor={a.username ?? `user #${a.userId ?? "?"}`}
+              target={a.details ?? ""}
+              time={timeAgo(a.createdAt)}
+            />
+          ))
         )}
       </div>
     </AdminLayout>
