@@ -53,13 +53,13 @@ export default function App() {
       <Route path="/profile/me/followers"    element={<ProtectedRoute requiredRole="user"><FollowersPage /></ProtectedRoute>} />
       <Route path="/settings"                element={<ProtectedRoute requiredRole="user"><SettingsPage /></ProtectedRoute>} />
 
-      {/* Admin routes — protection removed for preview */}
-      <Route path="/admin"             element={<AdminDashboard />} />
-      <Route path="/admin/users"       element={<UsersPage />} />
-      <Route path="/admin/communities" element={<AdminCommunitiesPage />} />
-      <Route path="/admin/audit"       element={<AdminAuditPage />} />
-      <Route path="/admin/health"      element={<AdminHealthPage />} />
-      <Route path="/admin/tags"        element={<AdminTagsPage />} />
+      {/* Admin routes */}
+      <Route path="/admin"             element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/users"       element={<ProtectedRoute requiredRole="admin"><UsersPage /></ProtectedRoute>} />
+      <Route path="/admin/communities" element={<ProtectedRoute requiredRole="admin"><AdminCommunitiesPage /></ProtectedRoute>} />
+      <Route path="/admin/audit"       element={<ProtectedRoute requiredRole="admin"><AdminAuditPage /></ProtectedRoute>} />
+      <Route path="/admin/health"      element={<ProtectedRoute requiredRole="admin"><AdminHealthPage /></ProtectedRoute>} />
+      <Route path="/admin/tags"        element={<ProtectedRoute requiredRole="admin"><AdminTagsPage /></ProtectedRoute>} />
 
       <Route path="/404" element={<NotFoundPage />} />
       <Route path="*"    element={<Navigate to="/404" replace />} />
