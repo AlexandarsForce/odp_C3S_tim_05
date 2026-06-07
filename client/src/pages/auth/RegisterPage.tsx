@@ -45,7 +45,7 @@ function validateClient(form: { username: string; fullname: string; email: strin
 
 function ErrorLine({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-[5px] text-[0.73rem] text-pn-red mt-1 leading-[1.5]">
+    <div className="flex items-start gap-[5px] text-[0.75rem] text-pn-red mt-1 leading-[1.5]">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="shrink-0 mt-[3px]">
         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
@@ -56,7 +56,7 @@ function ErrorLine({ message }: { message: string }) {
 
 function OptionalBadge() {
   return (
-    <span className="text-[0.65rem] font-bold uppercase tracking-wider text-pn-steel bg-[rgba(53,88,114,0.12)] px-[8px] py-[2px] rounded-full">
+    <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-pn-steel bg-[rgba(53,88,114,0.1)] px-[7px] py-[2px] rounded-full">
       optional
     </span>
   );
@@ -65,7 +65,7 @@ function OptionalBadge() {
 function Field({ id, label, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-[0.8rem] font-semibold text-pn-steel mb-[6px]">
+      <label htmlFor={id} className="block text-[0.8125rem] font-medium text-pn-navy mb-[6px]">
         {label} <span className="text-pn-red ml-[2px]">*</span>
       </label>
       {children}
@@ -149,7 +149,7 @@ export default function RegisterPage() {
   const pwStrength = passwordStrength(form.password);
 
   const inputCls = (err?: string) =>
-    `w-full bg-pn-bg border-[1.5px] rounded-[11px] px-4 py-3 text-[0.9rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-pn-sky focus:shadow-[0_0_0_3px_rgba(122,170,206,0.14)] transition-all ${
+    `w-full bg-pn-bg border-[1.5px] rounded-[11px] px-4 py-3 text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-muted focus:border-pn-sky focus:shadow-[0_0_0_3px_rgba(122,170,206,0.14)] transition-all ${
       err ? "border-pn-red shadow-[0_0_0_3px_rgba(192,57,43,0.1)]" : "border-pn-border"
     }`;
 
@@ -172,89 +172,90 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-[clamp(20px,3vw,40px)]">
         <div className="w-full max-w-[880px] grid grid-cols-[1fr_1fr] rounded-[22px] overflow-hidden border border-pn-border shadow-[0_20px_60px_rgba(53,88,114,0.12)] animate-fade-up max-[640px]:grid-cols-1">
           <div className="bg-pn-steel px-[clamp(28px,3.5vw,40px)] py-[clamp(32px,4vw,52px)] flex flex-col justify-between relative overflow-hidden max-[640px]:hidden">
-            <div className="absolute inset-0" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E\")" }} />
+            <div className="absolute inset-0" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4h-4z'/%3E%3C/g%3E%3C/svg%3E\")" }} />
+
             <div className="relative z-1">
-              <Link to="/" className="font-['Cormorant_Garamond',serif] text-[1.25rem] font-semibold text-pn-pale inline-block mb-[clamp(28px,4vw,44px)]">
-                Pulse<span className="text-white">Net</span>
-              </Link>
-              <h2 className="font-['Cormorant_Garamond',serif] text-[clamp(1.5rem,2.4vw,1.9rem)] font-bold text-white leading-[1.15] mb-3">Join 12,400+<br/>professionals</h2>
-              <p className="text-[0.82rem] text-[rgba(156,213,255,0.75)] leading-[1.65] mb-6">Build your network, join communities, and engage in conversations that move your career forward.</p>
-              <div className="flex items-center gap-3 mb-7">
+              <div className="text-center mb-7">
+                <Link to="/" className="font-['Cormorant_Garamond',serif] text-[1.75rem] font-bold text-pn-pale inline-block tracking-[-0.01em]">
+                  Pulse<span className="text-white">Net</span>
+                </Link>
+              </div>
+              <h2 className="font-['Cormorant_Garamond',serif] text-[1.375rem] font-bold text-white leading-[1.2] mb-2">Join 12,400+ professionals</h2>
+              <p className="text-[0.8125rem] text-[rgba(156,213,255,0.82)] leading-[1.6] mb-5 tracking-[0.005em]">Build your network, join communities, and engage in conversations that move your career forward.</p>
+              <div className="flex items-center gap-3">
                 <div className="flex">
                   {["A","S","P","R"].map((letter, i) => (
-                    <div key={i} className={`w-[30px] h-[30px] rounded-full border-2 border-pn-steel flex items-center justify-center text-[0.72rem] font-bold text-white ${i > 0 ? "-ml-2" : ""}`}
+                    <div key={i} className={`w-[30px] h-[30px] rounded-full border-2 border-pn-steel flex items-center justify-center text-[0.6875rem] font-bold text-white ${i > 0 ? "-ml-2" : ""}`}
                       style={{ background: i === 0 ? "linear-gradient(135deg,#7AAACE,#355872)" : i === 1 ? "linear-gradient(135deg,#355872,#1A2733)" : i === 2 ? "linear-gradient(135deg,#9CD5FF,#7AAACE)" : "linear-gradient(135deg,#8FABD4,#355872)" }}>
                       {letter}
                     </div>
                   ))}
                 </div>
-                <span className="text-[0.78rem] text-[rgba(156,213,255,0.8)] leading-[1.4]"><strong className="text-pn-pale">+47 people</strong> joined this week</span>
+                <span className="text-[0.8125rem] text-[rgba(156,213,255,0.85)] leading-[1.4]"><strong className="text-pn-pale">+47 people</strong> joined this week</span>
               </div>
             </div>
+
             <div className="relative z-1">
-              <div className="flex flex-col gap-[9px]">
-                {["840+ active communities", "95k+ posts shared", "Free forever — no credit card"].map((t) => {
-                  const parts = t.split(/(\d+\+?)/);
-                  return (
-                    <div key={t} className="flex items-center gap-[9px]">
-                      <span className="w-[5px] h-[5px] rounded-full bg-pn-sky shrink-0" />
-                      <span className="text-[0.77rem] text-[rgba(156,213,255,0.72)]">
-                        {parts.map((p, i) => p.match(/\d+\+?/) ? <strong key={i} className="text-pn-pale">{p}</strong> : p)}
-                      </span>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-4 pt-4 border-t border-[rgba(255,255,255,0.08)]">
+                <div className="flex items-baseline gap-[5px]">
+                  <span className="text-[0.875rem] font-bold text-pn-pale tabular-nums">840+</span>
+                  <span className="text-[0.7rem] text-[rgba(156,213,255,0.7)]">communities</span>
+                </div>
+                <span className="w-[3px] h-[3px] rounded-full bg-[rgba(156,213,255,0.3)]" />
+                <div className="flex items-baseline gap-[5px]">
+                  <span className="text-[0.875rem] font-bold text-pn-pale tabular-nums">95k+</span>
+                  <span className="text-[0.7rem] text-[rgba(156,213,255,0.7)]">posts shared</span>
+                </div>
               </div>
             </div>
           </div>
           <div className="bg-pn-white px-[clamp(28px,3.5vw,44px)] py-[clamp(28px,3.5vw,44px)] flex flex-col justify-center">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.1em] text-pn-sky mb-[7px]">Get started</p>
-            <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.6rem,2.3vw,2rem)] font-bold text-pn-navy leading-[1.1] mb-1">Create account</h1>
-            <p className="text-[0.82rem] text-pn-lm mb-6">Free forever — no card required</p>
+            <h1 className="font-['Cormorant_Garamond',serif] text-[1.375rem] font-bold text-pn-navy leading-[1.15] mb-1">Create account</h1>
+            <p className="text-[0.8125rem] text-pn-muted mb-6">Join the leading network for design system professionals</p>
 
             {serverError && (
-              <div className="flex items-start gap-[10px] bg-[rgba(192,57,43,0.07)] border border-[rgba(192,57,43,0.2)] rounded-[11px] px-[14px] py-3 text-[0.82rem] text-pn-red mb-[18px] leading-[1.5]">
+              <div className="flex items-start gap-[10px] bg-[rgba(192,57,43,0.07)] border border-[rgba(192,57,43,0.2)] rounded-[11px] px-[14px] py-3 text-[0.8125rem] text-pn-red mb-[18px] leading-[1.5]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0 mt-[1px]"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 {serverError}
               </div>
             )}
 
-            <form onSubmit={submit} noValidate>
+            <form onSubmit={submit} noValidate className="flex flex-col gap-[14px]">
               <Field id="username" label="Username" error={fieldErrors.username}>
                 <input id="username" type="text" value={form.username} onChange={set("username")} className={inputCls(fieldErrors.username)} placeholder="j.walker" />
               </Field>
-              <div className="mb-[14px]" />
+
               <Field id="fullname" label="Full name" error={fieldErrors.fullname}>
                 <input id="fullname" type="text" value={form.fullname} onChange={set("fullname")} className={inputCls(fieldErrors.fullname)} placeholder="Jamie Walker" />
               </Field>
-              <div className="mb-[14px]" />
+
               <Field id="email" label="Email address" error={fieldErrors.email}>
                 <input id="email" type="email" value={form.email} onChange={set("email")} className={inputCls(fieldErrors.email)} placeholder="you@example.com" />
               </Field>
-              <div className="mb-[14px]" />
+
               <Field id="password" label="Password" error={fieldErrors.password}>
                 <div className="relative">
                   <input id="password" type={showPw ? "text" : "password"} value={form.password} onChange={set("password")} className={inputCls(fieldErrors.password) + " pr-10"} placeholder="Min 8 characters, 1 uppercase, 1 number" />
                   <span onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-pn-lm cursor-pointer hover:text-pn-steel text-[0.95rem] select-none">👁</span>
                 </div>
                 {form.password && (
-                  <div className="mt-[7px]">
-                    <div className="flex gap-1 mb-[5px]">
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
                       {[1,2,3,4].map((i) => (
                         <div key={i} className={`flex-1 h-[3px] rounded ${i <= pwStrength.level - 1 ? (
                           pwStrength.level <= 3 ? "bg-pn-red" : pwStrength.level === 4 ? "bg-[#E67E22]" : "bg-pn-green"
                         ) : "bg-pn-border"}`} />
                       ))}
                     </div>
-                    <span className={`text-[0.72rem] font-semibold ${
+                    <span className={`text-[0.75rem] font-semibold ${
                       pwStrength.level <= 2 ? "text-pn-red" : pwStrength.level === 3 ? "text-[#B87E20]" : "text-pn-green"
                     }`}>{pwStrength.label}</span>
                   </div>
                 )}
               </Field>
-              <div className="mb-[14px]" />
-              <div className="mb-[14px]">
-                <label className="block text-[0.8rem] font-semibold text-pn-steel mb-[6px]">
+
+              <div>
+                <label className="block text-[0.8125rem] font-medium text-pn-navy mb-[6px]">
                   Confirm password <span className="text-pn-red ml-[2px]">*</span>
                 </label>
                 <div className="relative">
@@ -264,29 +265,29 @@ export default function RegisterPage() {
                 </div>
                 {fieldErrors.confirmPw
                   ? <ErrorLine message={fieldErrors.confirmPw} />
-                  : <div className="text-[0.72rem] text-pn-lm mt-1">Must match the password above.</div>
+                  : <div className="text-[0.75rem] text-pn-muted mt-1">Must match the password above.</div>
                 }
               </div>
 
-              <div className="mb-[14px]">
-                <label className="flex items-center justify-between text-[0.8rem] font-semibold text-pn-steel mb-[6px]">
+              <div>
+                <label className="flex items-center justify-between text-[0.8125rem] font-medium text-pn-navy mb-[6px]">
                   <span className="flex items-center gap-2">
                     Bio
                     <OptionalBadge />
                   </span>
-                  <span className="text-[0.72rem] font-normal text-pn-lm">{bio.length} / 300</span>
+                  <span className="text-[0.75rem] font-normal text-pn-muted tabular-nums">{bio.length} / 300</span>
                 </label>
                 <textarea
                   value={bio}
                   onChange={e => setBio(e.target.value.slice(0, 300))}
                   rows={3}
-                  className="w-full bg-pn-bg border-[1.5px] border-pn-border rounded-[11px] px-4 py-3 text-[0.9rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-pn-sky focus:shadow-[0_0_0_3px_rgba(122,170,206,0.14)] transition-all resize-y leading-[1.55]"
+                  className="w-full bg-pn-bg border-[1.5px] border-pn-border rounded-[11px] px-4 py-3 text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-muted focus:border-pn-sky focus:shadow-[0_0_0_3px_rgba(122,170,206,0.14)] transition-all resize-y leading-[1.6]"
                   placeholder="Tell others a little about yourself…"
                 />
               </div>
 
-              <div className="mb-[14px]">
-                <label className="flex items-center gap-2 text-[0.8rem] font-semibold text-pn-steel mb-[6px]">
+              <div>
+                <label className="flex items-center gap-2 text-[0.8125rem] font-medium text-pn-navy mb-[6px]">
                   Profile picture
                   <OptionalBadge />
                 </label>
@@ -303,7 +304,7 @@ export default function RegisterPage() {
                     )}
                     <input type="file" accept="image/*" onChange={handlePicture} className="absolute inset-0 opacity-0 cursor-pointer" />
                   </label>
-                  <div className="text-[0.78rem] text-pn-lm leading-[1.5]">
+                  <div className="text-[0.75rem] text-pn-muted leading-[1.5]">
                     {profilePicture ? (
                       <button type="button" onClick={() => { setProfilePicture(""); setProfilePictureFile(null); }} className="text-[#9B3A3A] font-semibold hover:underline cursor-pointer">Remove</button>
                     ) : (
@@ -312,8 +313,9 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </div>
+
               <button type="submit" disabled={loading}
-                className="w-full bg-pn-steel text-white font-semibold text-[0.95rem] py-3 rounded-[11px] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(53,88,114,0.24)] hover:bg-[#2a4760] hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(53,88,114,0.3)] transition-all mt-[18px] disabled:opacity-50 disabled:cursor-not-allowed">
+                className="w-full bg-pn-steel text-white font-semibold text-[0.875rem] py-3 rounded-[11px] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(53,88,114,0.24)] hover:bg-[#2a4760] hover:-translate-y-[1px] hover:shadow-[0_8px_24px_rgba(53,88,114,0.3)] transition-all mt-1 disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? (
                   <><div className="w-4 h-4 border-2.5 border-[rgba(255,255,255,0.35)] border-t-white rounded-full animate-spin" /> Creating account...</>
                 ) : (
@@ -321,12 +323,15 @@ export default function RegisterPage() {
                 )}
               </button>
             </form>
-            <p className="text-[0.72rem] text-pn-lm text-center mt-3 leading-[1.55]">
-              By creating an account you agree to PulseNet's terms.
-            </p>
-            <p className="text-center text-[0.8rem] text-pn-lm mt-[10px]">
-              Already have an account? <Link to="/login" className="text-pn-steel font-semibold hover:underline">Sign in →</Link>
-            </p>
+
+            <div className="flex flex-col gap-2 mt-4">
+              <p className="text-[0.75rem] text-pn-muted text-center leading-[1.55]">
+                By creating an account you agree to PulseNet's terms.
+              </p>
+              <p className="text-center text-[0.8125rem] text-pn-muted">
+                Already have an account? <Link to="/login" className="text-pn-steel font-semibold hover:underline">Sign in →</Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

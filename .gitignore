@@ -1,6 +1,7 @@
 **/.env
 
-# Claude Code — local-only files, ne idu na GitHub
+# Claude Code / Agent — local-only files, ne idu na GitHub
 .claude/settings.local.json
 .claude/skills/
 .claude/plugins/
+.agents/
