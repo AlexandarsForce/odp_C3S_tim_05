@@ -24,6 +24,10 @@ const SECTIONS = [
 type SectionId = typeof SECTIONS[number]["id"];
 
 const BIO_MAX = 500;
+const MAX_PICTURE_BYTES = 20 * 1024 * 1024;
+
+const isCustomPicture = (s: string) =>
+  s.startsWith("data:") || s.startsWith("http://") || s.startsWith("https://");
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -36,9 +40,10 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [avatarKey, setAvatarKey] = useState<string>(GRADIENTS[0].key);
+  const [customPicture, setCustomPicture] = useState<string>("");
   const [createdAt, setCreatedAt] = useState<string>("");
 
-  const [originalSnapshot, setOriginalSnapshot] = useState({ fullname: "", email: "", bio: "", avatarKey: GRADIENTS[0].key });
+  const [originalSnapshot, setOriginalSnapshot] = useState({ fullname: "", email: "", bio: "", avatarKey: GRADIENTS[0].key, customPicture: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -56,13 +61,15 @@ export default function SettingsPage() {
         const fn = r.data.fullname ?? "";
         const em = r.data.email ?? "";
         const b  = r.data.bio ?? "";
-        const pp = r.data.profilePicture ?? GRADIENTS[0].key;
-        const ak = GRADIENTS.find((g) => g.key === pp)?.key ?? GRADIENTS[0].key;
+        const pp = r.data.profilePicture ?? "";
+        const custom = isCustomPicture(pp) ? pp : "";
+        const ak = !custom ? (GRADIENTS.find((g) => g.key === pp)?.key ?? GRADIENTS[0].key) : GRADIENTS[0].key;
         setFullname(fn);
         setEmail(em);
         setBio(b);
         setAvatarKey(ak);
-        setOriginalSnapshot({ fullname: fn, email: em, bio: b, avatarKey: ak });
+        setCustomPicture(custom);
+        setOriginalSnapshot({ fullname: fn, email: em, bio: b, avatarKey: ak, customPicture: custom });
         if (r.data.createdAt) setCreatedAt(r.data.createdAt);
       }
       setLoading(false);
@@ -73,8 +80,9 @@ export default function SettingsPage() {
     fullname !== originalSnapshot.fullname ||
     email    !== originalSnapshot.email    ||
     bio      !== originalSnapshot.bio      ||
-    avatarKey !== originalSnapshot.avatarKey
-  ), [fullname, email, bio, avatarKey, originalSnapshot]);
+    avatarKey !== originalSnapshot.avatarKey ||
+    customPicture !== originalSnapshot.customPicture
+  ), [fullname, email, bio, avatarKey, customPicture, originalSnapshot]);
 
   useEffect(() => {
     if (toast) {
@@ -105,16 +113,17 @@ export default function SettingsPage() {
   const handleSave = async () => {
     if (!user || !dirty || saving) return;
     setSaving(true);
+    const profilePicture = customPicture || avatarKey;
     const r = await usersApi.updateMe({
       username: user.username,
       fullname,
       email,
       bio,
-      profilePicture: avatarKey,
+      profilePicture,
     });
     setSaving(false);
     if (r.success) {
-      setOriginalSnapshot({ fullname, email, bio, avatarKey });
+      setOriginalSnapshot({ fullname, email, bio, avatarKey, customPicture });
       setSavedFlash(true);
       setToast({ kind: "success", msg: "Profile updated" });
       setTimeout(() => setSavedFlash(false), 1500);
@@ -128,7 +137,27 @@ export default function SettingsPage() {
     setEmail(originalSnapshot.email);
     setBio(originalSnapshot.bio);
     setAvatarKey(originalSnapshot.avatarKey);
+    setCustomPicture(originalSnapshot.customPicture);
   };
+
+  const handlePictureFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast({ kind: "error", msg: "Only image files are allowed." });
+      return;
+    }
+    if (file.size > MAX_PICTURE_BYTES) {
+      setToast({ kind: "error", msg: "Image must be 20 MB or less." });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setCustomPicture(reader.result);
+    };
+    reader.onerror = () => setToast({ kind: "error", msg: "Could not read the image." });
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePicture = () => setCustomPicture("");
 
   const handleLogout = async () => {
     await logout();
@@ -170,9 +199,17 @@ export default function SettingsPage() {
         <div className="relative max-w-[1100px] mx-auto px-6 pt-9 pb-12 flex items-center gap-7 flex-wrap">
           <div className="relative">
             <div className="absolute -inset-3 rounded-full bg-white/20 blur-2xl" />
-            <div className={`relative w-[120px] h-[120px] rounded-full bg-gradient-to-br ${currentGradient.cls} border-[4px] border-white/80 flex items-center justify-center font-['Cormorant_Garamond',serif] text-[3rem] font-bold text-white shadow-[0_18px_50px_rgba(15,30,46,0.35)] animate-ring-glow`}>
-              {initial}
-            </div>
+            {customPicture ? (
+              <img
+                src={customPicture}
+                alt="Profile preview"
+                className="relative w-[120px] h-[120px] rounded-full object-cover border-[4px] border-white/80 shadow-[0_18px_50px_rgba(15,30,46,0.35)] animate-ring-glow bg-pn-bg"
+              />
+            ) : (
+              <div className={`relative w-[120px] h-[120px] rounded-full bg-gradient-to-br ${currentGradient.cls} border-[4px] border-white/80 flex items-center justify-center font-['Cormorant_Garamond',serif] text-[3rem] font-bold text-white shadow-[0_18px_50px_rgba(15,30,46,0.35)] animate-ring-glow`}>
+                {initial}
+              </div>
+            )}
             <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white text-pn-steel flex items-center justify-center text-[0.78rem] font-bold shadow-md border border-pn-border" title="Live preview">
               ✦
             </span>
@@ -281,39 +318,93 @@ export default function SettingsPage() {
               <span className="text-[0.7rem] font-bold uppercase tracking-wider text-pn-steel">Section · 02</span>
             </div>
             <div className="font-['Cormorant_Garamond',serif] text-[1.4rem] font-semibold text-pn-navy mb-1">Avatar</div>
-            <p className="text-[0.82rem] text-pn-muted mb-6">Pick a gradient. It powers your initial across the whole network.</p>
+            <p className="text-[0.82rem] text-pn-muted mb-6">
+              {customPicture
+                ? "Your uploaded picture is shown across the whole network."
+                : "Upload a picture or pick a gradient — gradients power your initial across the network."}
+            </p>
 
             <div className="flex items-center gap-7 flex-wrap">
               <div className="relative">
                 <div className="absolute -inset-2 rounded-full bg-pn-sky/15 blur-xl animate-ring-glow" />
-                <div className={`relative w-[88px] h-[88px] rounded-full bg-gradient-to-br ${currentGradient.cls} border-[3px] border-pn-white flex items-center justify-center font-['Cormorant_Garamond',serif] text-[2.1rem] font-bold text-white shadow-[0_10px_30px_rgba(53,88,114,0.25)] transition-all duration-500`}>
-                  {initial}
-                </div>
+                {customPicture ? (
+                  <img
+                    src={customPicture}
+                    alt="Avatar preview"
+                    className="relative w-[88px] h-[88px] rounded-full object-cover border-[3px] border-pn-white shadow-[0_10px_30px_rgba(53,88,114,0.25)] transition-all duration-500 bg-pn-bg"
+                  />
+                ) : (
+                  <div className={`relative w-[88px] h-[88px] rounded-full bg-gradient-to-br ${currentGradient.cls} border-[3px] border-pn-white flex items-center justify-center font-['Cormorant_Garamond',serif] text-[2.1rem] font-bold text-white shadow-[0_10px_30px_rgba(53,88,114,0.25)] transition-all duration-500`}>
+                    {initial}
+                  </div>
+                )}
               </div>
 
-              <div className="flex flex-wrap gap-3 flex-1 min-w-[260px]">
-                {GRADIENTS.map((g) => {
-                  const selected = g.key === avatarKey;
-                  return (
-                    <button key={g.key} onClick={() => setAvatarKey(g.key)}
-                      className={`group flex flex-col items-center gap-2 cursor-pointer transition-all ${selected ? "scale-[1.04]" : "hover:scale-[1.02]"}`}>
-                      <div className={`relative w-[54px] h-[54px] rounded-full bg-gradient-to-br ${g.cls} border-[2px] transition-all ${
-                        selected
-                          ? "border-pn-sky shadow-[0_0_0_3px_rgba(122,170,206,0.25),0_6px_20px_rgba(53,88,114,0.25)]"
-                          : "border-pn-border group-hover:border-pn-sky"
-                      }`}>
-                        {selected && (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pn-sky text-white flex items-center justify-center text-[0.7rem] shadow-md">
-                            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[0.7rem] font-semibold transition-colors ${selected ? "text-pn-steel" : "text-pn-muted group-hover:text-pn-steel"}`}>{g.label}</span>
+              <div className="flex-1 min-w-[260px]">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-[0.85rem] font-semibold text-white bg-pn-steel hover:bg-[#2a4760] px-4 py-[9px] rounded-xl shadow-[0_4px_12px_rgba(53,88,114,0.18)] transition-colors">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    {customPicture ? "Replace picture" : "Upload picture"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handlePictureFile(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {customPicture && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePicture}
+                      className="inline-flex items-center gap-2 text-[0.85rem] font-semibold text-pn-red bg-[rgba(155,58,58,0.08)] hover:bg-[rgba(155,58,58,0.16)] px-4 py-[9px] rounded-xl border border-[rgba(155,58,58,0.25)] transition-colors cursor-pointer"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      </svg>
+                      Remove
                     </button>
-                  );
-                })}
+                  )}
+                  <span className="text-[0.72rem] text-pn-lm">PNG or JPG up to 20 MB.</span>
+                </div>
+
+                {!customPicture && (
+                  <>
+                    <div className="text-[0.72rem] font-semibold uppercase tracking-wider text-pn-lm mt-5 mb-2">Or pick a gradient</div>
+                    <div className="flex flex-wrap gap-3">
+                      {GRADIENTS.map((g) => {
+                        const selected = g.key === avatarKey;
+                        return (
+                          <button key={g.key} type="button" onClick={() => setAvatarKey(g.key)}
+                            className={`group flex flex-col items-center gap-2 cursor-pointer transition-all ${selected ? "scale-[1.04]" : "hover:scale-[1.02]"}`}>
+                            <div className={`relative w-[54px] h-[54px] rounded-full bg-gradient-to-br ${g.cls} border-[2px] transition-all ${
+                              selected
+                                ? "border-pn-sky shadow-[0_0_0_3px_rgba(122,170,206,0.25),0_6px_20px_rgba(53,88,114,0.25)]"
+                                : "border-pn-border group-hover:border-pn-sky"
+                            }`}>
+                              {selected && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pn-sky text-white flex items-center justify-center text-[0.7rem] shadow-md">
+                                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                </span>
+                              )}
+                            </div>
+                            <span className={`text-[0.7rem] font-semibold transition-colors ${selected ? "text-pn-steel" : "text-pn-muted group-hover:text-pn-steel"}`}>{g.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </section>

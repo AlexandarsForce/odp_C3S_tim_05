@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users
     email           VARCHAR(150) NOT NULL UNIQUE,
     password        VARCHAR(300) NOT NULL,
     bio             VARCHAR(300) NULL,
-    profile_picture TEXT NULL,
+    profile_picture LONGTEXT NULL,
     role            ENUM('user','admin') NOT NULL DEFAULT 'user',
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
