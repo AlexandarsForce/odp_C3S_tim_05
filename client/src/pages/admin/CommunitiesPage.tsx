@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Building2, AlertCircle, RefreshCw } from "lucide-react";
 import { AdminLayout } from "../../components/admin/AdminLayout";
 import { adminApi } from "../../api_services/admin/AdminAPIService";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
@@ -94,61 +95,73 @@ export default function AdminCommunitiesPage() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center gap-[6px] text-[0.78rem] text-pn-lm mb-[10px]">
-        <Link to="/admin" className="text-pn-lm hover:text-pn-steel">Admin</Link>
-        <span>›</span>
-        <span style={{ color: "var(--color-pn-steel)", fontWeight: 600 }}>All Communities</span>
-      </div>
 
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-[22px]">
-        <div>
-          <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.8rem,3vw,2.4rem)] font-bold text-pn-navy mb-1">All Communities</h1>
-          <p className="text-[0.875rem] text-pn-muted">
-            Full system view — all communities regardless of visibility.
+      {/* ── SCENARIO A: Error ───────────────────────────────────────── */}
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center select-none">
+          {/* Halo */}
+          <div className="relative flex items-center justify-center mb-6">
+            <div className="absolute rounded-full bg-[rgba(180,60,60,0.1)]" style={{ width: "6rem", height: "6rem" }} />
+            <div className="absolute rounded-full bg-[rgba(180,60,60,0.15)]" style={{ width: "4.5rem", height: "4.5rem" }} />
+            <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(180,60,60,0.1)] border border-[rgba(180,60,60,0.2)]">
+              <AlertCircle className="h-6 w-6 text-[#9B3A3A]" />
+            </div>
+          </div>
+
+          <h3 className="font-['Cormorant_Garamond',serif] text-[1.3rem] font-semibold text-pn-navy mb-[6px]">
+            Failed to load communities
+          </h3>
+          <p className="text-[0.82rem] text-pn-muted leading-[1.65] max-w-[260px] mb-6">
+            There was a problem fetching data from the server. Check your connection and try again.
           </p>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 max-w-[420px]">
-        <div className="bg-pn-white border border-pn-border rounded-[16px] px-[18px] py-4">
-          <div className="text-[0.68rem] font-bold tracking-[0.1em] uppercase text-pn-lm mb-[6px]">Total</div>
-          <div className="font-['Cormorant_Garamond',serif] text-[1.8rem] font-bold text-pn-navy leading-none mb-1">
-            {total}
+          <button
+            onClick={() => load(page)}
+            className="inline-flex items-center gap-2 text-[0.82rem] font-semibold text-[#9B3A3A] bg-[rgba(180,60,60,0.07)] border border-[rgba(180,60,60,0.2)] px-5 py-[9px] rounded-[10px] hover:bg-[rgba(180,60,60,0.13)] transition-colors cursor-pointer"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry Connection
+          </button>
+        </div>
+
+      ) : (
+      /* ── SCENARIO B: Normal (empty or populated) ────────────────── */
+      <>
+        {/* Horizontal stat bar */}
+        <div className="inline-flex items-center gap-4 bg-pn-white border border-pn-border rounded-xl px-5 py-[14px] mb-7 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#7c6fc4]" />
+          <div className="p-[7px] rounded-[9px] bg-[rgba(124,111,196,0.14)]">
+            <Building2 className="h-5 w-5 text-[#7c6fc4]" />
           </div>
-          <div className="text-[0.72rem] text-pn-muted">communities in the system</div>
-        </div>
-        <div className="bg-pn-white border border-pn-border rounded-[16px] px-[18px] py-4">
-          <div className="text-[0.68rem] font-bold tracking-[0.1em] uppercase text-pn-lm mb-[6px]">On This Page</div>
-          <div className="font-['Cormorant_Garamond',serif] text-[1.8rem] font-bold text-pn-navy leading-none mb-1">
-            {communities.length}
+          <div>
+            <div className="text-[0.65rem] font-bold tracking-[0.11em] uppercase text-[rgba(124,111,196,0.75)] mb-2">
+              Total Communities
+            </div>
+            <div className="font-['DM_Sans',sans-serif] text-[1.75rem] font-bold text-pn-navy leading-none tabular-nums">
+              {total}
+            </div>
           </div>
-          <div className="text-[0.72rem] text-pn-muted">page {page} of {totalPages}</div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-[10px] mb-[14px] flex-wrap">
-        <div className="relative flex-1 min-w-[220px]">
-          <span className="absolute left-[13px] top-1/2 -translate-y-1/2 text-pn-lm pointer-events-none">⌕</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or description (current page)…"
-            className="w-full py-[10px] pl-[36px] pr-[14px] bg-pn-white border border-pn-border rounded-[10px] text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] focus:border-pn-sky placeholder:text-pn-lm"
-          />
+        {/* Search */}
+        <div className="mb-5">
+          <div className="relative w-full">
+            <span className="absolute left-[16px] top-1/2 -translate-y-1/2 text-pn-lm pointer-events-none select-none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search communities by name or description…"
+              className="w-full py-[10px] pl-[44px] pr-[14px] bg-pn-white border border-pn-border rounded-[10px] text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] focus:border-pn-sky placeholder:text-pn-lm"
+            />
+          </div>
         </div>
-        <span className="text-[0.8rem] text-pn-lm whitespace-nowrap">
-          {total} {total === 1 ? "community" : "communities"}
-        </span>
-      </div>
 
-      {error && (
-        <div className="rounded-[14px] px-[18px] py-[12px] mb-4 bg-[rgba(180,60,60,0.07)] border border-[rgba(180,60,60,0.2)] text-[0.85rem] text-[#9B3A3A]">
-          {error}
-        </div>
-      )}
-
-      <div className="bg-pn-white border border-pn-border rounded-[20px] overflow-hidden">
+        <div className="bg-pn-white border border-pn-border rounded-[20px] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[0.875rem]">
             <thead>
@@ -273,7 +286,9 @@ export default function AdminCommunitiesPage() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </>
+      )}
 
       {toDelete && (
         <div
