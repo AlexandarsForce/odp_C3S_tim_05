@@ -18,7 +18,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         try {
             const [result] = await res.conn.execute<ResultSetHeader>(
                 `INSERT INTO user_follows (follower_id, following_id, followed_at) VALUES (?, ?, ?)`,
-                [followerId, userId, new Date()]
+                [userId, followerId, new Date()]
             );
             return result.affectedRows > 0;
         } catch (err) {
@@ -33,7 +33,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
         try {
             type CountRow = RowDataPacket & { total: number | string };
             const [rows] = await res.conn.execute<RowDataPacket[]>(
-                `SELECT COUNT(*) as total FROM user_follows WHERE following_id = ? AND follower_id = ?`,
+                `SELECT COUNT(*) as total FROM user_follows WHERE follower_id = ? AND following_id = ?`,
                 [userId, followerId]
             );
             return Number((rows as CountRow[])[0]?.total ?? 0) > 0;
@@ -53,7 +53,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM user_follows WHERE following_id = ?`, [userId]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
             const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE following_id = ? LIMIT ${lim} OFFSET ${offset}`, [userId]);
-            const followers = rows.map(r => new UserFollower(r.following_id, r.follower_id));
+            const followers = rows.map(r => new UserFollower(r.follower_id, r.following_id));
             return { followers, totalAmount };
         } catch (err) {
             this.logger.error("UserFollowerRepository", "findAllFollowers failed", err);
@@ -71,7 +71,7 @@ export class UserFollowerRepository implements IUserFollowerRepository {
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM user_follows WHERE follower_id = ?`, [userId]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
             const [rows] = await res.conn.execute<RowDataPacket[]>(`SELECT * FROM user_follows WHERE follower_id = ? LIMIT ${lim} OFFSET ${offset}`, [userId]);
-            const following = rows.map(r => new UserFollower(r.following_id, r.follower_id));
+            const following = rows.map(r => new UserFollower(r.follower_id, r.following_id));
             return { following, totalAmount };
         } catch (err) {
             this.logger.error("UserFollowerRepository", "findAllFollowing failed", err);

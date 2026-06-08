@@ -29,7 +29,7 @@ export class UserFollowerService implements IUserFollowerService {
 
     async getFollowers(userId: number, page: number, limit: number): Promise<PaginatedListDto<UserFollowerDto>> {
         const { followers, totalAmount } = await this.userFollowerRepository.findAllFollowers(userId, page, limit);
-        const followerDtos = followers.map(f => new UserFollowerDto(f.followingId, f.followerId));
+        const followerDtos = followers.map(f => new UserFollowerDto(f.followerId, f.followingId));
         return new PaginatedListDto<UserFollowerDto>(followerDtos, totalAmount, page, limit);
     }
 
