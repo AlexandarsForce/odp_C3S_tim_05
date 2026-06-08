@@ -81,13 +81,15 @@ export class PostController {
     }
 
     private async createPost(req: Request, res: Response): Promise<void> {
-        const { authorId,communityId, title, content, mediaAttachment } = req.body as CreatePostDto;
-        const validationResult = validateCreatePost(new CreatePostDto(authorId,communityId, title, content, mediaAttachment));
+        const { authorId, communityId, title, content, mediaAttachment, tagIds } = req.body as CreatePostDto;
+        const safeTagIds = Array.isArray(tagIds) ? tagIds.filter((id) => Number.isInteger(id) && id > 0) : [];
+        const dto = new CreatePostDto(authorId, communityId, title, content, mediaAttachment, safeTagIds);
+        const validationResult = validateCreatePost(dto);
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        const post = await this.postService.createPost(req.user!.id, new CreatePostDto(authorId,communityId, title, content, mediaAttachment));
+        const post = await this.postService.createPost(req.user!.id, dto);
         res.status(201).json({ success: true, data: post });
     }
 
@@ -110,19 +112,22 @@ export class PostController {
         }
 
         const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        const isLiked = await this.postLikeService.isLikedByUser(req.user!.id, postId);
         const comments = await this.commentService.getPostComments(postId, page, limit);
-        res.status(200).json({ success: true, data: post, likesCount: postLikes.total, comments });
+        res.status(200).json({ success: true, data: post, isLiked, likesCount: postLikes.total, comments });
     }
 
     private async updatePost(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
-        const { authorId, communityId, title, content, mediaAttachment } = req.body as UpdatePostDto;
-        const validationResult = validateUpdatePost(new UpdatePostDto(authorId, communityId, title, content, mediaAttachment));
+        const { authorId, communityId, title, content, mediaAttachment, tagIds } = req.body as UpdatePostDto;
+        const safeTagIds = Array.isArray(tagIds) ? tagIds.filter((id) => Number.isInteger(id) && id > 0) : [];
+        const dto = new UpdatePostDto(authorId, communityId, title, content, mediaAttachment, safeTagIds);
+        const validationResult = validateUpdatePost(dto);
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });
             return;
         }
-        const success = await this.postService.updatePost(req.user!.id, postId, new UpdatePostDto(authorId, communityId, title, content, mediaAttachment));
+        const success = await this.postService.updatePost(req.user!.id, postId, dto);
         if (!success) {
             res.status(403).json({ success: false, message: "Post not found or insufficient permissions" });
             return;

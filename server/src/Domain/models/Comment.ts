@@ -1,4 +1,4 @@
-export class Comment{
+export class Comment {
     constructor(
         public id: number = 0,
         public postId: number = 0,
@@ -8,5 +8,7 @@ export class Comment{
         public deleted: boolean = false,
         public createdAt: Date = new Date(),
         public reported: boolean = false,
+        public authorUsername: string = "",
+        public likesCount: number = 0,
     ) {}
 }

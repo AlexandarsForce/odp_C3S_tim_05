@@ -11,5 +11,8 @@ export class Post {
         public likesCount: number = 0,
         public commentsCount: number = 0,
         public tagIds: number[] = [],
+        public tags: string[] = [],
+        public authorUsername: string = "",
+        public communityName: string = "",
     ) {}
 }

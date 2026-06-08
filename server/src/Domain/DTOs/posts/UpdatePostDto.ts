@@ -5,5 +5,6 @@ export class UpdatePostDto {
         public title: string = "",
         public content: string = "",
         public mediaAttachment: string = "",
+        public tagIds: number[] = [],
     ) {}
 }

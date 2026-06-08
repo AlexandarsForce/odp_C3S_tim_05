@@ -59,4 +59,8 @@ export class PostLikeService implements IPostLikeService {
         const likeDtos = likes.map(like => this.toDto(like));
         return new PaginatedListDto<PostLikeDto>(likeDtos, totalAmount, page, limit);
     }
+
+    async isLikedByUser(userId: number, postId: number): Promise<boolean> {
+        return this.postLikeRepository.isLikedByUser(postId, userId);
+    }
 }

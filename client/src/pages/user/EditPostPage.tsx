@@ -1,47 +1,86 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { postApi } from "../../api_services/posts/PostAPIService";
+import { tagApi } from "../../api_services/tags/TagAPIService";
+import { useAuth } from "../../hooks/auth/useAuthHook";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import type { TagDto } from "../../types/tag/TagTypes";
 
 export default function EditPostPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const TAG_LIMIT = 5;
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mediaAttachment, setMediaAttachment] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<TagDto[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [tagSearch, setTagSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [notAuthorized, setNotAuthorized] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const allTags = ["Browser APIs", "Performance", "React", "DX", "Design Tokens", "Accessibility", "DevOps", "ML / AI"];
 
   useEffect(() => {
     if (!id) return;
     postApi.getById(Number(id)).then((r) => {
       if (r.success && r.data) {
+        // Authorization: only the post author or an admin can edit
+        const isOwner = user?.id === r.data.authorId;
+        const isAdmin = user?.role === "admin";
+        if (user && !isOwner && !isAdmin) {
+          setNotAuthorized(true);
+          setLoading(false);
+          return;
+        }
         setTitle(r.data.title);
         setContent(r.data.content);
         setMediaAttachment(r.data.mediaAttachment ?? "");
-        if (r.data.tags) setSelectedTags(r.data.tags);
+        if (Array.isArray(r.data.tagIds)) setSelectedTagIds(r.data.tagIds);
       } else {
         setNotFound(true);
       }
       setLoading(false);
     });
-  }, [id]);
+  }, [id, user]);
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 5 ? [...prev, tag] : prev);
+  useEffect(() => {
+    setTagsLoading(true);
+    tagApi.getAll().then((r) => {
+      if (r.success && r.data) setAllTags(r.data);
+      setTagsLoading(false);
+    });
+  }, []);
+
+  const toggleTagId = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((t) => t !== tagId)
+        : prev.length < TAG_LIMIT
+        ? [...prev, tagId]
+        : prev
+    );
   };
+
+  const visibleTags = tagSearch.trim()
+    ? allTags.filter((t) => t.name.toLowerCase().includes(tagSearch.trim().toLowerCase()))
+    : allTags;
 
   const handleSave = async () => {
     if (!id || !title || !content) return;
     setSubmitting(true);
     setErrorMsg("");
-    const r = await postApi.update(Number(id), { title, content, mediaAttachment: mediaAttachment || undefined });
+    const r = await postApi.update(Number(id), {
+      title,
+      content,
+      mediaAttachment: mediaAttachment || undefined,
+      tagIds: selectedTagIds,
+    });
     setSubmitting(false);
     if (r.success) {
       navigate(`/posts/${id}`);
@@ -73,6 +112,24 @@ export default function EditPostPage() {
         <div className="max-w-[800px] mx-auto px-6 py-16 text-center text-pn-muted">
           <p className="text-lg mb-3">Post not found</p>
           <Link to="/feed" className="text-pn-steel font-semibold">Back to feed</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (notAuthorized) {
+    return (
+      <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
+        <AppNavbar />
+        <div className="max-w-[800px] mx-auto px-6 py-16 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[rgba(180,60,60,0.1)] text-[#9B3A3A] text-2xl mb-5">
+            &#128683;
+          </div>
+          <h1 className="text-xl font-bold text-pn-navy mb-2">Access Denied</h1>
+          <p className="text-sm text-pn-muted mb-6">You can only edit posts that you authored.</p>
+          <Link to="/feed" className="inline-flex items-center gap-2 text-sm font-semibold text-pn-steel px-5 py-2 rounded-lg border border-pn-border hover:border-pn-sky">
+            Back to feed
+          </Link>
         </div>
       </div>
     );
@@ -140,25 +197,63 @@ export default function EditPostPage() {
 
           <div className="mb-5">
             <label className="text-[0.82rem] font-semibold text-pn-steel mb-2 flex items-center gap-1">
-              Tags <span className="text-[0.72rem] font-normal text-pn-lm">Optional</span>
+              Tags <span className="text-[0.72rem] font-normal text-pn-lm">Optional — up to {TAG_LIMIT}</span>
             </label>
             <div className="bg-pn-bg border-[1.5px] border-pn-border rounded-xl p-[14px]">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[0.78rem] text-pn-lm">{selectedTags.length} selected</span>
-                <span onClick={() => setSelectedTags([])} className="text-[0.75rem] font-semibold text-pn-steel cursor-pointer">Clear all</span>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <span className="text-[0.78rem] text-pn-lm">
+                  <strong className="text-pn-steel font-semibold">{selectedTagIds.length}</strong> / {TAG_LIMIT} selected
+                </span>
+                {selectedTagIds.length > 0 && (
+                  <button type="button" onClick={() => setSelectedTagIds([])}
+                    className="text-[0.75rem] font-semibold text-pn-steel hover:text-pn-navy cursor-pointer">
+                    Clear all
+                  </button>
+                )}
               </div>
-              <div className="flex flex-wrap gap-[7px]">
-                {allTags.map((tag) => (
-                  <span key={tag} onClick={() => toggleTag(tag)}
-                    className={`text-[0.78rem] font-semibold px-[13px] py-[5px] rounded-full cursor-pointer transition-all ${
-                      selectedTags.includes(tag)
-                        ? "bg-pn-steel text-white border-pn-steel border"
-                        : "text-pn-muted bg-pn-white border border-pn-border hover:border-pn-sky hover:text-pn-steel"
-                    }`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
+
+              {allTags.length > 8 && (
+                <input
+                  type="text"
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  placeholder="Filter tags…"
+                  className="w-full bg-pn-white border border-pn-border rounded-lg px-3 py-[7px] text-[0.82rem] text-pn-navy outline-none placeholder:text-pn-lm focus:border-pn-sky transition-colors mb-3"
+                />
+              )}
+
+              {tagsLoading ? (
+                <div className="text-[0.78rem] text-pn-lm italic py-2">Loading tags…</div>
+              ) : allTags.length === 0 ? (
+                <div className="text-[0.78rem] text-pn-lm italic py-2">No tags available yet.</div>
+              ) : visibleTags.length === 0 ? (
+                <div className="text-[0.78rem] text-pn-lm italic py-2">No tags match "{tagSearch}".</div>
+              ) : (
+                <div className="flex flex-wrap gap-[7px]">
+                  {visibleTags.map((tag) => {
+                    const active = selectedTagIds.includes(tag.id);
+                    const atCap = !active && selectedTagIds.length >= TAG_LIMIT;
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTagId(tag.id)}
+                        disabled={atCap}
+                        className={`text-[0.78rem] font-semibold px-[13px] py-[5px] rounded-full transition-all border ${
+                          active
+                            ? "bg-pn-steel text-white border-pn-steel shadow-[0_2px_6px_rgba(53,88,114,0.18)]"
+                            : atCap
+                            ? "text-pn-lm bg-pn-white border-pn-border opacity-50 cursor-not-allowed"
+                            : "text-pn-muted bg-pn-white border-pn-border hover:border-pn-sky hover:text-pn-steel cursor-pointer"
+                        }`}
+                      >
+                        {active && <span className="mr-[5px]">✓</span>}
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

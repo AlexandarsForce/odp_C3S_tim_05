@@ -3,7 +3,7 @@ import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuthHook";
 import { Spinner } from "../ui/UI";
 
-export const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole: string }> = ({ children, requiredRole }) => {
+export const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole?: string }> = ({ children, requiredRole }) => {
   const { isAuthenticated, user, isLoading, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode; requiredRole:
     navigate("/login");
   };
 
-  if (user?.role !== requiredRole) return (
+  if (requiredRole && user?.role !== requiredRole) return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy flex flex-col">
 
       <nav className="bg-[rgba(247,248,240,0.93)] backdrop-blur-[14px] border-b border-pn-border px-10 h-[62px] flex items-center justify-between">
