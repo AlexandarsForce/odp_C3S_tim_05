@@ -98,8 +98,8 @@ export default function AdminCommunitiesPage() {
   return (
     <AdminLayout>
 
-      {/* ── SCENARIO A: Error ─── TEMP DISABLED to preview normal layout ── */}
-      {false && error ? (
+      {/* ── SCENARIO A: Error ────────────────────────────────────── */}
+      {error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center select-none">
           {/* Halo */}
           <div className="relative flex items-center justify-center mb-6">
