@@ -13,7 +13,7 @@ const authHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const err = <T>(e: unknown, fallback: string): ApiResponse<T> => ({
+const err = <T, E>(e: E, fallback: string): ApiResponse<T> => ({
   success: false,
   message: axios.isAxiosError(e) ? (e.response?.data as { message?: string })?.message ?? fallback : fallback,
 });

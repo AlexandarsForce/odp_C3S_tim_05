@@ -4,7 +4,7 @@ import type { IAuthAPIService } from "./IAuthAPIService";
 
 const BASE = import.meta.env.VITE_API_URL + "auth";
 
-const err = (e: unknown, fallback: string): AuthResponse => {
+const err = <E>(e: E, fallback: string): AuthResponse => {
   if (axios.isAxiosError(e)) {
     const data = e.response?.data as { message?: string; field?: string } | undefined;
     return { success: false, message: data?.message ?? fallback, field: data?.field };

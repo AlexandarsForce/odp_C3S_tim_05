@@ -9,7 +9,7 @@ export const authHeader = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const err = <T>(e: unknown, fallback: string): ApiResponse<T> => ({
+export const err = <T, E>(e: E, fallback: string): ApiResponse<T> => ({
   success: false,
   message: axios.isAxiosError(e) ? (e.response?.data as { message?: string })?.message ?? fallback : fallback,
 });

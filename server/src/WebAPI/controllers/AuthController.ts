@@ -14,7 +14,7 @@ const MAX_MB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 
 function uploadSingle(field: string) {
   return (req: Request, res: Response, next: NextFunction) => {
-    upload.single(field)(req, res, (err: unknown) => {
+    upload.single(field)(req, res, (err) => {
       if (!err) return next();
       if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
         res.status(413).json({ success: false, field: "profilePicture", message: `Image must be ${MAX_MB} MB or less` });
