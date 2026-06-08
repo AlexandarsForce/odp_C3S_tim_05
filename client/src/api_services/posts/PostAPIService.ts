@@ -16,6 +16,8 @@ type GetByCommunityOpts = {
   sortOrder?: PostSortOrder;
 };
 
+type PostDetailResponse = ApiResponse<PostDto> & { isLiked?: boolean };
+
 export const postApi = {
   async getByCommunity(communityId: number, opts: GetByCommunityOpts = {}) {
     const { page = 1, limit = 20, sortBy, sortOrder } = opts;
@@ -30,8 +32,8 @@ export const postApi = {
       .then(r => r.data).catch(e => err<PaginatedData<PostDto>>(e, "Failed to load feed"));
   },
   async getById(id: number) {
-    return axios.get<ApiResponse<PostDto>>(`${BASE}posts/${id}`, { headers: authHeader() })
-      .then(r => r.data).catch(e => err<PostDto>(e, "Failed to load post"));
+    return axios.get<PostDetailResponse>(`${BASE}posts/${id}`, { headers: authHeader() })
+      .then(r => r.data).catch(e => err<PostDto>(e, "Failed to load post") as PostDetailResponse);
   },
   async create(payload: CreatePostInput) {
     return axios.post<ApiResponse<PostDto>>(`${BASE}posts`, payload, { headers: authHeader() })

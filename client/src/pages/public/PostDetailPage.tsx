@@ -58,6 +58,7 @@ export default function PostDetailPage() {
     ]).then(([postRes, commRes]) => {
       if (postRes.success && postRes.data) {
         setPost(postRes.data);
+        if ((postRes as any).isLiked) setLiked(true);
       } else {
         setNotFound(true);
       }
@@ -97,11 +98,7 @@ export default function PostDetailPage() {
     if (!newComment.trim() || !user || !postId) return;
     setSubmitting(true);
     setError("");
-    const r = await commentApi.create({
-      postId,
-      content: newComment.trim(),
-      parentId: replyingTo || undefined,
-    });
+    const r = await commentApi.create(postId, newComment.trim(), replyingTo || undefined);
     setSubmitting(false);
     if (r.success && r.data) {
       setComments([...comments, r.data]);

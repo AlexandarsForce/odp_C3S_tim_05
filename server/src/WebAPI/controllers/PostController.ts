@@ -112,8 +112,9 @@ export class PostController {
         }
 
         const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        const isLiked = await this.postLikeService.isLikedByUser(req.user!.id, postId);
         const comments = await this.commentService.getPostComments(postId, page, limit);
-        res.status(200).json({ success: true, data: post, likesCount: postLikes.total, comments });
+        res.status(200).json({ success: true, data: post, isLiked, likesCount: postLikes.total, comments });
     }
 
     private async updatePost(req: Request, res: Response): Promise<void> {

@@ -61,9 +61,6 @@ CREATE TABLE IF NOT EXISTS comments
     FOREIGN KEY (parent_id) REFERENCES comments(comment_id)
 );
 
--- Migration: add reported column if running against an existing database
-ALTER TABLE comments ADD COLUMN IF NOT EXISTS reported TINYINT(1) DEFAULT 0;
-
 CREATE TABLE IF NOT EXISTS tags
 (
     tag_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

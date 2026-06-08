@@ -31,8 +31,8 @@ export const commentApi = {
       .catch(e => err<PaginatedData<CommentDto>>(e, "Failed to load comments"));
   },
 
-  async create(comment: CreateCommentInput) {
-    return axios.post<ApiResponse<CommentDto>>(`${BASE}comments`, comment, { headers: authHeader() })
+  async create(postId: number, content: string, parentId?: number) {
+    return axios.post<ApiResponse<CommentDto>>(`${BASE}posts/${postId}/comments`, { content, parentId }, { headers: authHeader() })
       .then(r => r.data)
       .catch(e => err<CommentDto>(e, "Failed to create comment"));
   },
