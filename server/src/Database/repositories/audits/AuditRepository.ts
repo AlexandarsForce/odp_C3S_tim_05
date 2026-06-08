@@ -19,9 +19,9 @@ export class AuditRepository implements IAuditRepository {
     if (!res) return new Audit();
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `INSERT INTO audits (user_id, action, details, ip_address, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [log.userId ?? null, log.action, log.details ?? null, log.ipAddress ?? null, new Date()]
+        `INSERT INTO audits (user_id, action, details, ip_address)
+         VALUES (?, ?, ?, ?)`,
+        [log.userId ?? null, log.action, log.details ?? null, log.ipAddress ?? null]
       );
       if (result.insertId === 0) return new Audit();
       return new Audit(result.insertId, log.userId, log.action,
@@ -41,8 +41,8 @@ export class AuditRepository implements IAuditRepository {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT al.*, u.username
          FROM audits al
-         LEFT JOIN users u ON al.userId = u.id
-         ORDER BY al.createdAt DESC
+         LEFT JOIN users u ON al.user_id = u.user_id
+         ORDER BY al.created_at DESC
          LIMIT ${lim} OFFSET ${offset}`,
         []
       );
@@ -51,9 +51,9 @@ export class AuditRepository implements IAuditRepository {
       );
       const items = rows.map(
         (l) => new AuditDto(
-          l.id, l.userId ?? null, l.username ?? null,
+          l.id, l.user_id ?? null, l.username ?? null,
           l.action, l.details ?? null,
-          l.ipAddress ?? null, new Date(l.createdAt as string)
+          l.ip_address ?? null, new Date(l.created_at as string)
         )
       );
       return new PaginatedListDto(items, cnt[0]?.total ?? 0, page, limit);

@@ -87,8 +87,8 @@ export default function AuditPage() {
   return (
     <AdminLayout>
 
-      {/* ── SCENARIO A: Error ─── TEMP DISABLED to preview normal layout ── */}
-      {false && error ? (
+      {/* ── SCENARIO A: Error ────────────────────────────────────── */}
+      {error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center select-none">
           <div className="relative flex items-center justify-center mb-6">
             <div className="absolute rounded-full bg-[rgba(180,60,60,0.1)]" style={{ width: "6rem", height: "6rem" }} />
@@ -101,7 +101,7 @@ export default function AuditPage() {
             Failed to load audit log
           </h3>
           <p className="text-[0.82rem] text-pn-muted leading-[1.65] max-w-[260px] mb-6">
-            There was a problem fetching data from the server. Check your connection and try again.
+            {error}
           </p>
           <button
             onClick={fetchLogs}
