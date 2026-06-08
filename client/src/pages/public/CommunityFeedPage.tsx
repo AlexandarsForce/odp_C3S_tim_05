@@ -1,10 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { Heart, MessageCircle } from "lucide-react";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import { postApi } from "../../api_services/posts/PostAPIService";
+import { tagApi } from "../../api_services/tags/TagAPIService";
 import { useAuth } from "../../hooks/auth/useAuthHook";
 import type { CommunityDto, CommunityMemberDto } from "../../types/community/CommunityTypes";
-import type { PostDto } from "../../types/post/PostTypes";
+import type { PostDto, PostSortOption } from "../../types/post/PostTypes";
+import type { TagDto } from "../../types/tag/TagTypes";
+
+const SORT_OPTIONS: PostSortOption[] = [
+  { key: "newest",   label: "Newest",          sortBy: "createdAt",     sortOrder: "desc" },
+  { key: "top",      label: "Most liked",      sortBy: "likesCount",    sortOrder: "desc" },
+  { key: "discussed",label: "Most commented",  sortBy: "commentsCount", sortOrder: "desc" },
+];
 
 const AVATARS = [
   "from-pn-sky to-pn-steel",
@@ -32,13 +41,20 @@ export default function CommunityFeedPage() {
   const [members, setMembers] = useState<CommunityMemberDto[]>([]);
   const [totalMembers, setTotalMembers] = useState(0);
   const [posts, setPosts] = useState<PostDto[]>([]);
+  const [tags, setTags] = useState<TagDto[]>([]);
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
   const [isMember, setIsMember] = useState(false);
+  const [sortKey, setSortKey] = useState<string>("newest");
+  const [postsLoading, setPostsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
-    const [commRes, postRes] = await Promise.all([
+    setPostsLoading(true);
+    const sort = SORT_OPTIONS.find((o) => o.key === sortKey) ?? SORT_OPTIONS[0];
+    const [commRes, postRes, tagRes] = await Promise.all([
       communityApi.getById(Number(id), 20),
-      postApi.getByCommunity(Number(id)),
+      postApi.getByCommunity(Number(id), { sortBy: sort.sortBy, sortOrder: sort.sortOrder }),
+      tagApi.getAll(),
     ]);
     if (commRes.success && commRes.data) {
       setCommunity(commRes.data);
@@ -48,7 +64,9 @@ export default function CommunityFeedPage() {
       }
     }
     if (postRes.success && postRes.data) setPosts(postRes.data.items);
-  }, [id]);
+    if (tagRes.success && tagRes.data) setTags(tagRes.data);
+    setPostsLoading(false);
+  }, [id, sortKey]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -67,6 +85,23 @@ export default function CommunityFeedPage() {
     if (!id) return;
     await communityApi.leave(Number(id));
     fetchData();
+  };
+
+  const displayedPosts = useMemo(() => {
+    if (!selectedTagId) return posts;
+    const selectedTag = tags.find((tag) => tag.id === selectedTagId);
+    return posts.filter((post) => {
+      if (post.tagIds?.includes(selectedTagId)) return true;
+      if (!selectedTag?.name) return false;
+      return post.tags?.some((tag) => tag.toLowerCase() === selectedTag.name.toLowerCase()) ?? false;
+    });
+  }, [posts, selectedTagId, tags]);
+
+  const getPostTags = (post: PostDto) => {
+    if (post.tags && post.tags.length > 0) return post.tags;
+    return (post.tagIds ?? [])
+      .map((tagId) => tags.find((tag) => tag.id === tagId)?.name)
+      .filter((tagName): tagName is string => Boolean(tagName));
   };
 
   return (
@@ -127,18 +162,92 @@ export default function CommunityFeedPage() {
 
           {isMember && (
             <Link to={`/posts/new?community=${id}`}
-              className="block bg-pn-white border border-pn-border rounded-[20px] px-5 py-4 mb-5 text-[0.875rem] text-pn-lm hover:border-pn-sky hover:text-pn-steel transition-all">
+              className="block bg-pn-white border border-pn-border rounded-[20px] px-5 py-4 mb-4 text-[0.875rem] text-pn-lm hover:border-pn-sky hover:text-pn-steel transition-all">
               + Write a new post in this community...
             </Link>
           )}
 
-          {posts.length === 0 && (
-            <div className="bg-pn-white border border-pn-border rounded-[20px] py-12 text-center text-pn-muted">
-              <p className="text-sm">No posts in this community yet.</p>
+          {/* Sort selector — segmented control aligned with toolbar rhythm */}
+          <div className="flex items-center justify-between gap-3 mb-[14px] flex-wrap">
+            <div className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-pn-lm">
+              {displayedPosts.length === 0 ? "No posts" : `${displayedPosts.length} ${displayedPosts.length === 1 ? "post" : "posts"}`}
+            </div>
+            <div
+              role="tablist"
+              aria-label="Sort posts"
+              className="inline-flex items-center gap-[3px] bg-pn-white border border-pn-border rounded-[12px] p-[3px] shadow-[0_2px_8px_rgba(53,88,114,0.04)]"
+            >
+              {SORT_OPTIONS.map((opt) => {
+                const active = sortKey === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSortKey(opt.key)}
+                    className={`text-[0.78rem] font-semibold px-[12px] py-[6px] rounded-[9px] transition-all ${
+                      active
+                        ? "bg-pn-steel text-white shadow-[0_2px_6px_rgba(53,88,114,0.18)]"
+                        : "text-pn-muted hover:text-pn-steel hover:bg-[rgba(53,88,114,0.05)] cursor-pointer"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {tags.length > 0 && (
+            <div className="bg-pn-white border border-pn-border rounded-[16px] p-3 mb-[14px]">
+              <div className="flex items-center gap-[8px] flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagId(null)}
+                  className={`text-[0.76rem] font-semibold px-[11px] py-[5px] rounded-full border transition-all ${
+                    selectedTagId === null
+                      ? "bg-pn-steel text-white border-pn-steel"
+                      : "bg-pn-bg text-pn-muted border-pn-border hover:text-pn-steel hover:border-pn-sky"
+                  }`}
+                >
+                  All tags
+                </button>
+                {tags.map((tag) => {
+                  const active = selectedTagId === tag.id;
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => setSelectedTagId(active ? null : tag.id)}
+                      className={`text-[0.76rem] font-semibold px-[11px] py-[5px] rounded-full border transition-all ${
+                        active
+                          ? "bg-pn-steel text-white border-pn-steel"
+                          : "bg-pn-bg text-pn-muted border-pn-border hover:text-pn-steel hover:border-pn-sky"
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {posts.map((p, i) => (
+          {postsLoading && posts.length === 0 && (
+            <div className="bg-pn-white border border-pn-border rounded-[20px] py-12 text-center text-pn-muted">
+              <p className="text-sm">Loading posts…</p>
+            </div>
+          )}
+
+          {!postsLoading && displayedPosts.length === 0 && (
+            <div className="bg-pn-white border border-pn-border rounded-[20px] py-12 text-center text-pn-muted">
+              <p className="text-sm">{selectedTagId ? "No posts match this tag." : "No posts in this community yet."}</p>
+            </div>
+          )}
+
+          {displayedPosts.map((p, i) => {
+            const postTags = getPostTags(p);
+            return (
             <Link key={p.id} to={`/posts/${p.id}`}
               className="bg-pn-white border border-pn-border rounded-[20px] mb-[14px] overflow-hidden hover:shadow-[0_8px_28px_rgba(53,88,114,0.08)] hover:border-[#D4E2ED] transition-all block">
               <div className="flex items-center gap-3 px-5 pt-[18px] pb-[14px]">
@@ -149,20 +258,31 @@ export default function CommunityFeedPage() {
                   <div className="text-[0.9rem] font-semibold text-pn-navy">{p.authorUsername ?? "unknown"}</div>
                   <div className="text-[0.75rem] text-pn-lm">{timeAgo(p.createdAt)}</div>
                 </div>
-                {p.tags && p.tags.length > 0 && (
-                  <span className="text-[0.72rem] font-semibold text-pn-steel bg-[rgba(53,88,114,0.08)] px-[10px] py-[3px] rounded-full">{p.tags[0]}</span>
-                )}
               </div>
               <div className="px-5 pb-[14px]">
                 <div className="font-['Cormorant_Garamond',serif] text-[1.15rem] font-semibold text-pn-navy mb-2 leading-[1.3]">{p.title}</div>
                 <p className="text-[0.875rem] leading-[1.7] text-pn-muted">{p.content}</p>
               </div>
+              {postTags.length > 0 && (
+                <div className="flex gap-[6px] px-5 pb-[12px] flex-wrap">
+                  {postTags.map((t) => (
+                    <span key={t} className="text-[0.72rem] font-semibold text-pn-steel bg-[rgba(53,88,114,0.08)] border border-[rgba(53,88,114,0.14)] px-[10px] py-[3px] rounded-full">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-4 px-5 py-3 border-t border-pn-surface">
-                <span className="inline-flex items-center gap-1 text-[0.82rem] text-pn-lm font-medium">❤ {p.likesCount}</span>
-                <span className="inline-flex items-center gap-1 text-[0.82rem] text-pn-lm font-medium">💬 {p.commentsCount}</span>
+                <span className="inline-flex items-center gap-[6px] text-[0.82rem] text-pn-lm font-medium">
+                  <Heart className="w-[14px] h-[14px]" /> {p.likesCount}
+                </span>
+                <span className="inline-flex items-center gap-[6px] text-[0.82rem] text-pn-lm font-medium">
+                  <MessageCircle className="w-[14px] h-[14px]" /> {p.commentsCount}
+                </span>
               </div>
             </Link>
-          ))}
+            );
+          })}
 
           {!isAuthenticated && (
             <div className="bg-pn-white border border-pn-border rounded-2xl p-7 mt-5 text-center">

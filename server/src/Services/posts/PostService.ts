@@ -4,6 +4,7 @@ import { IPostRepository } from "../../Domain/repositories/posts/IPostRepository
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { ICommunityMemberRepository } from "../../Domain/repositories/communities/ICommunityMemberRepository";
 import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";
+import { CommunityMemberStatus } from "../../Domain/enums/CommunityMemberStatus";
 import { Post } from "../../Domain/models/Post";
 import { PostDto } from "../../Domain/DTOs/posts/PostDto";
 import { CreatePostDto } from "../../Domain/DTOs/posts/CreatePostDto";
@@ -29,11 +30,21 @@ export class PostService implements IPostService {
             post.likesCount,
             post.commentsCount,
             post.tagIds,
+            post.tags,
+            post.authorUsername,
+            post.communityName,
         );
     }
 
     async createPost(userId: number, post: CreatePostDto): Promise<PostDto> {
+        // Check community membership before creating post
+        const membership = await this.communityMemberRepository.findCommunityMemberById(post.communityId, userId);
+        if (membership.userId === 0 || membership.status !== CommunityMemberStatus.ACTIVE) {
+            return new PostDto(); // Not a member or not active
+        }
+
         const newPost = new Post(0, userId, post.communityId, post.title, post.content, post.mediaAttachment);
+        newPost.tagIds = Array.isArray(post.tagIds) ? post.tagIds : [];
         const created = await this.postRepository.createPost(newPost);
         if (created.id === 0) return new PostDto();
         await this.auditService.log({ userId, action: "POST_CREATED", details: "posts"});
@@ -72,6 +83,7 @@ export class PostService implements IPostService {
         }
 
         const updatedPost = new Post(postId, existingPost.authorId, existingPost.communityId, post.title, post.content, post.mediaAttachment);
+        updatedPost.tagIds = Array.isArray(post.tagIds) ? post.tagIds : [];
         const success = await this.postRepository.updatePost(postId, updatedPost);
         if (success) await this.auditService.log({ userId, action: "POST_UPDATED", details: "posts"});
         return success;

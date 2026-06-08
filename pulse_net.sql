@@ -54,11 +54,15 @@ CREATE TABLE IF NOT EXISTS comments
     parent_id    INT UNSIGNED NULL,
     content      VARCHAR(2000) NOT NULL,
     deleted      TINYINT(1) DEFAULT 0,
+    reported     TINYINT(1) DEFAULT 0,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
     FOREIGN KEY (author_id) REFERENCES users(user_id),
     FOREIGN KEY (parent_id) REFERENCES comments(comment_id)
 );
+
+-- Migration: add reported column if running against an existing database
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS reported TINYINT(1) DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS tags
 (

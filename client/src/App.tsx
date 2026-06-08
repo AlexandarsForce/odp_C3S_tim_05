@@ -13,7 +13,7 @@ import AdminCommunitiesPage from "./pages/admin/CommunitiesPage";
 import AdminAuditPage from "./pages/admin/AuditPage";
 import AdminHealthPage from "./pages/admin/HealthPage";
 import AdminTagsPage from "./pages/admin/TagsPage";
-import PostDetailPage from "./pages/posts/PostDetailPage";
+import PostDetailPage from "./pages/public/PostDetailPage";
 
 import ExplorePage from "./pages/public/ExplorePage";
 import CommunityFeedPage from "./pages/public/CommunityFeedPage";
@@ -40,18 +40,18 @@ export default function App() {
       <Route path="/community/:id"  element={<CommunityFeedPage />} />
       <Route path="/profile/:id"    element={<PublicProfilePage />} />
 
-      {/* User routes — protection removed for preview */}
-      <Route path="/dashboard" element={<UserDashboard />} />
-      <Route path="/feed"      element={<FeedPage />} />
-      <Route path="/posts/new"      element={<CreatePostPage />} />
-      <Route path="/posts/:id"      element={<PostDetailPage />} />
-      <Route path="/posts/:id/edit" element={<EditPostPage />} />
-      <Route path="/my-communities"          element={<MyCommunitiesPage />} />
-      <Route path="/community/create"        element={<CreateCommunityPage />} />
-      <Route path="/community/:id/members"   element={<CommunityMembersPage />} />
-      <Route path="/profile/me"              element={<MyProfilePage />} />
-      <Route path="/profile/me/followers"    element={<FollowersPage />} />
-      <Route path="/settings"                element={<SettingsPage />} />
+      {/* User routes — protected */}
+      <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+      <Route path="/feed"      element={<ProtectedRoute><FeedPage /></ProtectedRoute>} />
+      <Route path="/posts/new"      element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
+      <Route path="/posts/:id"      element={<ProtectedRoute><PostDetailPage /></ProtectedRoute>} />
+      <Route path="/posts/:id/edit" element={<ProtectedRoute><EditPostPage /></ProtectedRoute>} />
+      <Route path="/my-communities"          element={<ProtectedRoute><MyCommunitiesPage /></ProtectedRoute>} />
+      <Route path="/community/create"        element={<ProtectedRoute><CreateCommunityPage /></ProtectedRoute>} />
+      <Route path="/community/:id/members"   element={<ProtectedRoute><CommunityMembersPage /></ProtectedRoute>} />
+      <Route path="/profile/me"              element={<ProtectedRoute><MyProfilePage /></ProtectedRoute>} />
+      <Route path="/profile/me/followers"    element={<ProtectedRoute><FollowersPage /></ProtectedRoute>} />
+      <Route path="/settings"                element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
       {/* Admin routes */}
       <Route path="/admin"             element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />

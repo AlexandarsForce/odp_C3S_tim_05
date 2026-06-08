@@ -1,11 +1,28 @@
 import axios from "axios";
 import { BASE, authHeader, err } from "../common/apiHelper";
 import type { ApiResponse, PaginatedData, PaginatedResponse } from "../../types/common/ApiResponse";
-import type { PostDto, CreatePostInput, UpdatePostInput } from "../../types/post/PostTypes";
+import type {
+  PostDto,
+  CreatePostInput,
+  UpdatePostInput,
+  PostSortBy,
+  PostSortOrder,
+} from "../../types/post/PostTypes";
+
+type GetByCommunityOpts = {
+  page?: number;
+  limit?: number;
+  sortBy?: PostSortBy;
+  sortOrder?: PostSortOrder;
+};
 
 export const postApi = {
-  async getByCommunity(communityId: number, page = 1, limit = 20) {
-    return axios.get<PaginatedResponse<PostDto>>(`${BASE}posts/community/${communityId}?page=${page}&limit=${limit}`, { headers: authHeader() })
+  async getByCommunity(communityId: number, opts: GetByCommunityOpts = {}) {
+    const { page = 1, limit = 20, sortBy, sortOrder } = opts;
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (sortBy) params.set("sortBy", sortBy);
+    if (sortOrder) params.set("sortOrder", sortOrder);
+    return axios.get<PaginatedResponse<PostDto>>(`${BASE}posts/community/${communityId}?${params.toString()}`, { headers: authHeader() })
       .then(r => r.data).catch(e => err<PaginatedData<PostDto>>(e, "Failed to load posts"));
   },
   async getFeed(page = 1, limit = 20) {
@@ -27,5 +44,21 @@ export const postApi = {
   async delete(id: number) {
     return axios.delete<ApiResponse<void>>(`${BASE}posts/${id}`, { headers: authHeader() })
       .then(r => r.data).catch(e => err<void>(e, "Failed to delete post"));
+  },
+  async addTag(postId: number, tagId: number) {
+    return axios.post<ApiResponse<void>>(`${BASE}posts/${postId}/tags`, { tagId }, { headers: authHeader() })
+      .then(r => r.data).catch(e => err<void>(e, "Failed to add tag"));
+  },
+  async removeTag(postId: number, tagId: number) {
+    return axios.delete<ApiResponse<void>>(`${BASE}posts/${postId}/tags/${tagId}`, { headers: authHeader() })
+      .then(r => r.data).catch(e => err<void>(e, "Failed to remove tag"));
+  },
+  async like(postId: number) {
+    return axios.post<ApiResponse<void>>(`${BASE}posts/${postId}/like`, {}, { headers: authHeader() })
+      .then(r => r.data).catch(e => err<void>(e, "Failed to like post"));
+  },
+  async unlike(postId: number) {
+    return axios.delete<ApiResponse<void>>(`${BASE}posts/${postId}/like`, { headers: authHeader() })
+      .then(r => r.data).catch(e => err<void>(e, "Failed to unlike post"));
   },
 };

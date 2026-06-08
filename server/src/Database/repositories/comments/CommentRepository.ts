@@ -20,6 +20,8 @@ export class CommentRepository implements ICommentRepository {
       Boolean(r.deleted),
       r.created_at ? new Date(r.created_at) : new Date(),
       Boolean(r.reported),
+      r.author_username ?? "",
+      Number(r.likes_count ?? 0),
     );
   }
 
@@ -66,21 +68,36 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentsByPostId(postId: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
+  async findCommentsByPostId(postId: number, page: number = 1, limit: number = 100, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { comments: [], totalAmount: 0 };
     const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
     const orderClause = sortBy === 'likesCount'
-      ? `(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) ${dir}`
+      ? `likes_count ${dir}`
       : `c.created_at ${dir}`;
+    const offset = (page - 1) * limit;
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT c.* FROM comments c WHERE c.post_id = ? AND c.deleted = 0 ORDER BY ${orderClause}`,
+      type CountRow = RowDataPacket & { total: number };
+      const [[countRow]] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as total FROM comments c WHERE c.post_id = ? AND c.deleted = 0`,
         [postId]
+      );
+      const totalAmount = Number((countRow as CountRow).total ?? 0);
+
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT c.*,
+          u.username AS author_username,
+          (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS likes_count
+         FROM comments c
+         LEFT JOIN users u ON c.author_id = u.user_id
+         WHERE c.post_id = ? AND c.deleted = 0
+         ORDER BY ${orderClause}
+         LIMIT ? OFFSET ?`,
+        [postId, limit, offset]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),
-        totalAmount: rows.length
+        totalAmount,
       };
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentsByPostId failed", err);
@@ -110,21 +127,36 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentsByParentId(parentId: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
+  async findCommentsByParentId(parentId: number, page: number = 1, limit: number = 50, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<{ comments: Comment[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { comments: [], totalAmount: 0 };
     const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
     const orderClause = sortBy === 'likesCount'
-      ? `(SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) ${dir}`
+      ? `likes_count ${dir}`
       : `c.created_at ${dir}`;
+    const offset = (page - 1) * limit;
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT c.* FROM comments c WHERE c.parent_id = ? AND c.deleted = 0 ORDER BY ${orderClause}`,
+      type CountRow = RowDataPacket & { total: number };
+      const [[countRow]] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as total FROM comments c WHERE c.parent_id = ? AND c.deleted = 0`,
         [parentId]
+      );
+      const totalAmount = Number((countRow as CountRow).total ?? 0);
+
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT c.*,
+          u.username AS author_username,
+          (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS likes_count
+         FROM comments c
+         LEFT JOIN users u ON c.author_id = u.user_id
+         WHERE c.parent_id = ? AND c.deleted = 0
+         ORDER BY ${orderClause}
+         LIMIT ? OFFSET ?`,
+        [parentId, limit, offset]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),
-        totalAmount: rows.length
+        totalAmount,
       };
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentsByParentId failed", err);
@@ -174,7 +206,7 @@ export class CommentRepository implements ICommentRepository {
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE comments SET content = '[deleted]' WHERE comment_id = ?`,
+        `UPDATE comments SET deleted = 1, content = '[komentar obrisan]' WHERE comment_id = ?`,
         [commentId]
       );
       return result.affectedRows > 0;

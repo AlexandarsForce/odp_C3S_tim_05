@@ -34,12 +34,14 @@ export class CommentService implements ICommentService {
             id: comment.id,
             postId: comment.postId,
             authorId: comment.authorId,
+            authorUsername: comment.authorUsername || undefined,
             content: comment.content,
             parentId: comment.parentId,
             deleted: comment.deleted,
             createdAt: comment.createdAt,
             mentions,
             reported: comment.reported,
+            likesCount: comment.likesCount ?? 0,
         };
     }
 
@@ -75,7 +77,7 @@ export class CommentService implements ICommentService {
     }
 
     async getPostComments(postId: number, page: number, limit: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<PaginatedListDto<CommentDto>> {
-        const { comments, totalAmount } = await this.commentRepository.findCommentsByPostId(postId, sortBy, sortOrder);
+        const { comments, totalAmount } = await this.commentRepository.findCommentsByPostId(postId, page, limit, sortBy, sortOrder);
         const dtos = await Promise.all(comments.map(c => this.toCommentDto(c)));
         return new PaginatedListDto(dtos, totalAmount, page, limit);
     }
@@ -88,7 +90,7 @@ export class CommentService implements ICommentService {
     }
 
     async getCommentReplies(parentId: number, page: number, limit: number, sortBy: CommentSortBy = 'createdAt', sortOrder: SortOrder = 'asc'): Promise<PaginatedListDto<CommentDto>> {
-        const { comments, totalAmount } = await this.commentRepository.findCommentsByParentId(parentId, sortBy, sortOrder);
+        const { comments, totalAmount } = await this.commentRepository.findCommentsByParentId(parentId, page, limit, sortBy, sortOrder);
         const dtos = await Promise.all(comments.map(c => this.toCommentDto(c)));
         return new PaginatedListDto(dtos, totalAmount, page, limit);
     }

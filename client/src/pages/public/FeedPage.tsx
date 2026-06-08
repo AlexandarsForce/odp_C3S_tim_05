@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Heart, MessageCircle } from "lucide-react";
 import { postApi } from "../../api_services/posts/PostAPIService";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import { AppNavbar } from "../../components/layout/AppNavbar";
-import type { PostDto } from "../../types/post/PostTypes";
+import type { PostDto, PostSortOption } from "../../types/post/PostTypes";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
+
+const SORT_OPTIONS: PostSortOption[] = [
+  { key: "newest", label: "Newest", sortBy: "createdAt", sortOrder: "desc" },
+  { key: "top", label: "Most liked", sortBy: "likesCount", sortOrder: "desc" },
+  { key: "discussed", label: "Most commented", sortBy: "commentsCount", sortOrder: "desc" },
+];
 
 const AVATARS = [
   "from-pn-sky to-pn-steel",
@@ -27,6 +34,7 @@ const timeAgo = (date: string) => {
 export default function FeedPage() {
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [myCommunities, setMyCommunities] = useState<CommunityDto[]>([]);
+  const [sortKey, setSortKey] = useState("newest");
 
   const fetchFeed = useCallback(async () => {
     const [feedRes, commRes] = await Promise.all([
@@ -38,6 +46,15 @@ export default function FeedPage() {
   }, []);
 
   useEffect(() => { fetchFeed(); }, [fetchFeed]);
+
+  const displayedPosts = useMemo(() => {
+    const sort = SORT_OPTIONS.find((option) => option.key === sortKey) ?? SORT_OPTIONS[0];
+    return [...posts].sort((a, b) => {
+      if (sort.sortBy === "likesCount") return b.likesCount - a.likesCount;
+      if (sort.sortBy === "commentsCount") return b.commentsCount - a.commentsCount;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [posts, sortKey]);
 
   return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
@@ -80,7 +97,7 @@ export default function FeedPage() {
             </h1>
             <div className="flex gap-5 flex-wrap pt-4 mt-4 border-t border-pn-surface">
               {[
-                { val: posts.length, lbl: "Posts" },
+                { val: displayedPosts.length, lbl: "Posts" },
                 { val: myCommunities.length, lbl: "Communities" },
               ].map((s) => (
                 <div key={s.lbl} className="flex flex-col gap-[2px]">
@@ -91,7 +108,37 @@ export default function FeedPage() {
             </div>
           </div>
 
-          {posts.map((p, i) => (
+          <div className="flex items-center justify-between gap-3 mb-[14px] flex-wrap">
+            <div className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-pn-lm">
+              {displayedPosts.length === 0 ? "No posts" : `${displayedPosts.length} ${displayedPosts.length === 1 ? "post" : "posts"}`}
+            </div>
+            <div
+              role="tablist"
+              aria-label="Sort feed posts"
+              className="inline-flex items-center gap-[3px] bg-pn-white border border-pn-border rounded-[12px] p-[3px] shadow-[0_2px_8px_rgba(53,88,114,0.04)]"
+            >
+              {SORT_OPTIONS.map((opt) => {
+                const active = sortKey === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setSortKey(opt.key)}
+                    className={`text-[0.78rem] font-semibold px-[12px] py-[6px] rounded-[9px] transition-all ${
+                      active
+                        ? "bg-pn-steel text-white shadow-[0_2px_6px_rgba(53,88,114,0.18)]"
+                        : "text-pn-muted hover:text-pn-steel hover:bg-[rgba(53,88,114,0.05)] cursor-pointer"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {displayedPosts.map((p, i) => (
             <Link key={p.id} to={`/posts/${p.id}`}
               className="bg-pn-white border border-pn-border rounded-[20px] mb-[14px] overflow-hidden hover:shadow-[0_8px_28px_rgba(53,88,114,0.08)] hover:border-[#D4E2ED] transition-all block">
               <div className="flex items-center gap-3 px-5 pt-[18px] pb-[14px]">
@@ -118,13 +165,17 @@ export default function FeedPage() {
                 </div>
               )}
               <div className="flex items-center px-5 pt-3 pb-3 border-t border-pn-surface mt-3">
-                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm px-3 py-[6px] rounded-lg">♥ {p.likesCount}</span>
-                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm px-3 py-[6px] rounded-lg">💬 {p.commentsCount}</span>
-                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm ml-auto px-3 py-[6px] rounded-lg">↗ Share</span>
+                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm px-3 py-[6px] rounded-lg">
+                  <Heart className="w-[14px] h-[14px]" /> {p.likesCount}
+                </span>
+                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm px-3 py-[6px] rounded-lg">
+                  <MessageCircle className="w-[14px] h-[14px]" /> {p.commentsCount}
+                </span>
+                <span className="flex items-center gap-[6px] text-[0.82rem] font-medium text-pn-lm ml-auto px-3 py-[6px] rounded-lg">Share</span>
               </div>
             </Link>
           ))}
-          {posts.length === 0 && (
+          {displayedPosts.length === 0 && (
             <div className="text-center py-20 text-pn-muted">
               <p className="text-lg mb-2">Your feed is empty</p>
               <p className="text-sm">Join communities to see posts here.</p>
@@ -136,14 +187,14 @@ export default function FeedPage() {
         <aside className="sticky top-[86px] flex flex-col gap-[14px] max-md:hidden">
           <div className="bg-pn-white border border-pn-border rounded-[20px] p-5">
             <div className="font-['Cormorant_Garamond',serif] text-[1rem] font-semibold text-pn-navy mb-[14px]">Trending Today</div>
-            {posts.slice(0, 3).map((p, i) => (
+            {displayedPosts.slice(0, 3).map((p, i) => (
               <div key={p.id} className="pb-[9px] mb-[9px] border-b border-pn-surface last:border-b-0 last:pb-0 last:mb-0">
                 <div className="text-[0.7rem] font-bold text-pn-lm mb-[2px]">#{i + 1}</div>
                 <div className="text-[0.83rem] font-medium text-pn-navy leading-[1.4]">{p.title}</div>
-                <div className="text-[0.72rem] text-pn-lm">{p.communityName ?? `Community #${p.communityId}`} · {p.likesCount} likes</div>
+                <div className="text-[0.72rem] text-pn-lm">{p.communityName ?? `Community #${p.communityId}`}{' · '}{p.likesCount} likes</div>
               </div>
             ))}
-            {posts.length === 0 && (
+            {displayedPosts.length === 0 && (
               <div className="text-[0.78rem] text-pn-muted">No trending posts yet.</div>
             )}
           </div>
