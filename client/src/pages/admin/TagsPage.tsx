@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Tag, AlertCircle, RefreshCw } from "lucide-react";
+import { Tag, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import { AdminLayout } from "../../components/admin/AdminLayout";
 import { PageHeaderPill } from "../../components/admin/PageHeaderPill";
 import { AdminKpiCard } from "../../components/admin/AdminKpiCard";
@@ -12,6 +12,9 @@ export default function TagsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newTag, setNewTag] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const fetchTags = async () => {
     setLoading(true);
@@ -28,6 +31,24 @@ export default function TagsPage() {
 
   useEffect(() => { fetchTags(); }, []);
 
+  const handleCreate = async () => {
+    const name = newTag.trim();
+    if (!name) {
+      setCreateError("Tag name cannot be empty.");
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    const r = await tagApi.create(name);
+    setCreating(false);
+    if (r.success) {
+      setNewTag("");
+      fetchTags();
+    } else {
+      setCreateError(r.message || "Failed to create tag.");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     const r = await tagApi.delete(id);
     if (r.success) fetchTags();
@@ -39,8 +60,8 @@ export default function TagsPage() {
   return (
     <AdminLayout>
 
-      {/* ── SCENARIO A: Error ─── TEMP DISABLED to preview normal layout ── */}
-      {false && error ? (
+      {/* ── SCENARIO A: Error ────────────────────────────────────── */}
+      {error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center select-none">
           <div className="relative flex items-center justify-center mb-6">
             <div className="absolute rounded-full bg-[rgba(180,60,60,0.1)]" style={{ width: "6rem", height: "6rem" }} />
@@ -79,6 +100,44 @@ export default function TagsPage() {
           value={tags.length.toString()}
           accentHex="#0d9488"
         />
+
+        {/* Create tag */}
+        <div className="mb-4 bg-pn-white border border-pn-border rounded-[14px] px-[18px] py-[14px]">
+          <div className="flex items-center gap-[10px] mb-[10px]">
+            <div className="w-[26px] h-[26px] rounded-[7px] bg-[rgba(13,148,136,0.1)] text-[#0d9488] flex items-center justify-center shrink-0">
+              <Plus className="h-[14px] w-[14px]" />
+            </div>
+            <div>
+              <div className="text-[0.875rem] font-semibold text-pn-navy leading-none">Create a new tag</div>
+              <div className="text-[0.72rem] text-pn-muted mt-[3px]">Tags added here become available across the platform.</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={newTag}
+              onChange={(e) => { setNewTag(e.target.value); if (createError) setCreateError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !creating) handleCreate(); }}
+              disabled={creating}
+              className="flex-1 min-w-[180px] bg-pn-white border border-pn-border rounded-[10px] py-[10px] px-[14px] text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-[#0d9488] transition-colors disabled:opacity-60"
+              placeholder="Enter tag…"
+            />
+            <button
+              onClick={handleCreate}
+              disabled={creating || !newTag.trim()}
+              className="inline-flex items-center gap-[6px] text-[0.82rem] font-semibold text-white bg-[#0d9488] border border-[#0d9488] px-[16px] py-[9px] rounded-[10px] hover:bg-[#0b827a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {creating ? "Creating…" : "Create"}
+            </button>
+          </div>
+          {createError && (
+            <div className="mt-[10px] flex items-center gap-[6px] text-[0.78rem] text-[#9B3A3A]">
+              <AlertCircle className="h-3.5 w-3.5" />
+              {createError}
+            </div>
+          )}
+        </div>
 
         {/* Search */}
         <div className="mb-4">
