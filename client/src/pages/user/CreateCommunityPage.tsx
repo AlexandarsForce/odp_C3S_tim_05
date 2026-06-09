@@ -1,30 +1,55 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 
 const MIN_DESCRIPTION_LENGTH = 15;
+const RULES_MAX = 200;
+const AVATAR_URL_MAX = 500;
+
+const isValidHttpUrl = (v: string): boolean => {
+  if (!v) return true; // empty allowed
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 
 export default function CreateCommunityPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [rules, setRules] = useState("");
+  const [avatarPicture, setAvatarPicture] = useState("");
   const [type, setType] = useState<"public" | "private">("public");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [descTouched, setDescTouched] = useState(false);
+  const [avatarTouched, setAvatarTouched] = useState(false);
 
   const descTrimmedLen = description.trim().length;
   const descValid = descTrimmedLen >= MIN_DESCRIPTION_LENGTH;
   const nameValid = name.trim().length >= 2;
-  const canSubmit = nameValid && descValid;
+  const avatarValid = isValidHttpUrl(avatarPicture.trim()) && avatarPicture.trim().length <= AVATAR_URL_MAX;
+  const rulesValid = rules.trim().length <= RULES_MAX;
+  const canSubmit = nameValid && descValid && avatarValid && rulesValid;
   const showDescError = descTouched && !descValid;
+  const showAvatarError = avatarTouched && !avatarValid;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     setError("");
-    const r = await communityApi.create({ name: name.trim(), description: description.trim(), rules: "", avatarPicture: "", type });
+    const r = await communityApi.create({
+      name: name.trim(),
+      description: description.trim(),
+      rules: rules.trim(),
+      avatarPicture: avatarPicture.trim(),
+      type,
+    });
     if (r.success && r.data && r.data.id) {
       navigate(`/community/${r.data.id}`);
     } else if (r.success) {
@@ -34,8 +59,6 @@ export default function CreateCommunityPage() {
     }
     setSubmitting(false);
   };
-
-  const initial = (name?.charAt(0)?.toUpperCase() || "C").trim();
 
   return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
@@ -96,6 +119,47 @@ export default function CreateCommunityPage() {
                       : `Tell people what this community is about (min ${MIN_DESCRIPTION_LENGTH} chars).`}
                 </span>
                 <span className="text-pn-lm">{descTrimmedLen}/500</span>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label htmlFor="cc-avatar" className="block text-[0.875rem] font-semibold text-pn-steel mb-2">
+                Avatar image URL <span className="text-pn-lm font-normal">· optional</span>
+              </label>
+              <input
+                id="cc-avatar"
+                type="url"
+                value={avatarPicture}
+                onChange={(e) => setAvatarPicture(e.target.value)}
+                onBlur={() => setAvatarTouched(true)}
+                className="w-full px-4 py-3 bg-pn-bg border border-pn-border rounded-xl text-[0.92rem] text-pn-navy outline-none focus:border-pn-sky focus:bg-pn-white transition-colors placeholder:text-pn-lm"
+                placeholder="https://example.com/avatar.png"
+              />
+              <div className="mt-2 text-[0.78rem]">
+                {showAvatarError ? (
+                  <span className="text-pn-red font-medium">Enter a valid http(s) URL or leave it blank.</span>
+                ) : (
+                  <span className="text-pn-muted">Paste a public image URL — shown across community headers and cards.</span>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label htmlFor="cc-rules" className="block text-[0.875rem] font-semibold text-pn-steel mb-2">
+                Community rules <span className="text-pn-lm font-normal">· optional</span>
+              </label>
+              <textarea
+                id="cc-rules"
+                value={rules}
+                onChange={(e) => setRules(e.target.value)}
+                rows={4}
+                maxLength={RULES_MAX}
+                className="w-full px-4 py-3 bg-pn-bg border border-pn-border rounded-xl text-[0.92rem] text-pn-navy outline-none focus:border-pn-sky focus:bg-pn-white transition-colors resize-y leading-[1.65] placeholder:text-pn-lm"
+                placeholder={"1. Be respectful.\n2. Keep posts on-topic.\n3. No self-promotion."}
+              />
+              <div className="flex items-center justify-between mt-2 text-[0.78rem]">
+                <span className="text-pn-muted">Shown to anyone viewing the community.</span>
+                <span className="text-pn-lm">{rules.length}/{RULES_MAX}</span>
               </div>
             </div>
 
@@ -214,9 +278,11 @@ export default function CreateCommunityPage() {
                 Live preview
               </div>
               <div className="flex gap-3 mb-3">
-                <div className="w-14 h-14 rounded-[14px] bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[1.4rem] font-bold text-white shrink-0 transition-all">
-                  {initial}
-                </div>
+                <CommunityAvatar
+                  name={name || "C"}
+                  avatarUrl={avatarValid ? avatarPicture.trim() : undefined}
+                  size="md"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="font-['Cormorant_Garamond',serif] text-[1.15rem] font-semibold text-pn-navy leading-tight truncate">
                     {name || <span className="text-pn-lm italic font-normal">Community name</span>}
@@ -230,6 +296,16 @@ export default function CreateCommunityPage() {
               <p className={`text-[0.82rem] leading-[1.6] line-clamp-4 ${description ? "text-pn-muted" : "text-pn-lm italic"}`}>
                 {description || "Your description appears here as you type…"}
               </p>
+              {rules.trim().length > 0 && (
+                <div className="mt-4 pt-4 border-t border-pn-border">
+                  <div className="text-[0.66rem] font-bold uppercase tracking-[0.12em] text-pn-muted mb-[6px]">
+                    Rules preview
+                  </div>
+                  <p className="text-[0.78rem] leading-[1.55] text-pn-muted whitespace-pre-wrap line-clamp-4">
+                    {rules}
+                  </p>
+                </div>
+              )}
             </div>
           </aside>
         </div>

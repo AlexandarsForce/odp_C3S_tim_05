@@ -12,5 +12,8 @@ export class Community {
         public createdAt: Date = new Date(),
         public updatedAt: Date = new Date(),
         public memberCount: number = 0,
+        // Populated only when the row was fetched via a member-aware query
+        // (e.g. findCommunityByMemberId). Empty string means "not the viewer's row".
+        public viewerRole: string = "",
     ) {}
 }

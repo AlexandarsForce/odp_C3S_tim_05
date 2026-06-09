@@ -8,11 +8,11 @@ export default function HealthPage() {
   const [nodes, setNodes] = useState<DbNodeDto[]>([]);
   const [lastUpdated, setLastUpdated] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
 
   const fetchHealth = async () => {
     setLoading(true);
-    setError(null);
+    setError("");
     const res = await adminApi.getDbHealth();
     if (res.success && res.data) {
       setNodes(res.data);
@@ -139,11 +139,11 @@ export default function HealthPage() {
                 <div className={`text-[0.9rem] font-semibold ${node.repLagMs && node.repLagMs > 500 ? "text-[#B87E20]" : "text-pn-green"}`}>
                   {node.name.includes("Master")
                     ? (node.failedWrites ?? 0).toLocaleString()
-                    : (node.repLagMs != null ? `${(node.repLagMs / 1000).toFixed(0)}s` : "—")}
+                    : (node.repLagMs ? `${(node.repLagMs / 1000).toFixed(0)}s` : "—")}
                 </div>
               </div>
             </div>
-            {node.status === "degraded" && node.repLagMs != null && node.repLagMs > 500 && (
+            {node.status === "degraded" && node.repLagMs > 500 && (
               <div className="bg-[rgba(180,60,60,0.06)] border border-[rgba(180,60,60,0.18)] rounded-[10px] px-[14px] py-[10px] text-[0.78rem] text-pn-red leading-[1.5] mb-3">
                 <strong className="font-semibold">Replication lag warning:</strong> Slave is {(node.repLagMs / 1000).toFixed(0)} seconds behind the master.
               </div>

@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Trash2 } from "lucide-react";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
+import { adminApi } from "../../api_services/admin/AdminAPIService";
 import { postApi } from "../../api_services/posts/PostAPIService";
 import { tagApi } from "../../api_services/tags/TagAPIService";
 import { useAuth } from "../../hooks/auth/useAuthHook";
-import type { CommunityDto, CommunityMemberDto } from "../../types/community/CommunityTypes";
+import { useToast } from "../../components/ui/Toast";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
+import type { CommunityDto, CommunityMemberDto, ViewerMembership } from "../../types/community/CommunityTypes";
 import type { PostDto, PostSortOption } from "../../types/post/PostTypes";
 import type { TagDto } from "../../types/tag/TagTypes";
 
@@ -37,15 +40,23 @@ export default function CommunityFeedPage() {
   const { id } = useParams();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [community, setCommunity] = useState<CommunityDto | null>(null);
+  const toast = useToast();
+  const [community, setCommunity] = useState<CommunityDto | undefined>(undefined);
   const [members, setMembers] = useState<CommunityMemberDto[]>([]);
   const [totalMembers, setTotalMembers] = useState(0);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [tags, setTags] = useState<TagDto[]>([]);
-  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
+  const [selectedTagId, setSelectedTagId] = useState<number | undefined>(undefined);
   const [isMember, setIsMember] = useState(false);
+  const [viewerMembership, setViewerMembership] = useState<ViewerMembership | undefined>(undefined);
   const [sortKey, setSortKey] = useState<string>("newest");
   const [postsLoading, setPostsLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"leave" | "delete" | undefined>(undefined);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const isAdmin = user?.role === "admin";
+  const isOwner = !!user && !!community && community.ownerId === user.id;
+  const canDelete = isAdmin || isOwner;
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -58,6 +69,7 @@ export default function CommunityFeedPage() {
     ]);
     if (commRes.success && commRes.data) {
       setCommunity(commRes.data);
+      setViewerMembership(commRes.viewerMembership);
       const m = commRes.members as { items?: CommunityMemberDto[]; total?: number } | CommunityMemberDto[] | undefined;
       if (Array.isArray(m)) {
         setMembers(m);
@@ -78,24 +90,69 @@ export default function CommunityFeedPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
-    setIsMember(members.some((m) => m.userId === user?.id));
-  }, [members, user]);
+    // The viewer is a member when the backend confirmed an active membership row.
+    // Fall back to scanning the members list for older response shapes.
+    if (viewerMembership?.status === "active") {
+      setIsMember(true);
+      return;
+    }
+    if (viewerMembership) {
+      setIsMember(false);
+      return;
+    }
+    setIsMember(members.some((m) => m.userId === user?.id && m.status === "active"));
+  }, [members, user, viewerMembership]);
+
+  const isPending = viewerMembership?.status === "pending";
 
   const handleJoin = async () => {
     if (!isAuthenticated) { navigate(`/login?next=/community/${id}`); return; }
     if (!id) return;
-    await communityApi.join(Number(id));
+    const r = await communityApi.join(Number(id));
+    if (r.success) {
+      const isPublic = community?.type === "public";
+      toast.push(isPublic ? "Joined community" : "Join request sent", "success");
+    } else {
+      toast.push(r.message || "Failed to join", "error");
+    }
     fetchData();
   };
 
   const handleLeave = async () => {
     if (!id) return;
-    await communityApi.leave(Number(id));
-    fetchData();
+    setActionBusy(true);
+    const r = await communityApi.leave(Number(id));
+    setActionBusy(false);
+    setConfirmAction(undefined);
+    if (r.success) {
+      toast.push("You left the community", "success");
+      // After leaving, the user is no longer a member — bounce them back to the
+      // list page (mirrors the requirement: leave → community disappears from MyCommunities).
+      navigate("/my-communities");
+      return;
+    }
+    toast.push(r.message || "Could not leave community", "error");
+  };
+
+  const handleDelete = async () => {
+    if (!id) return;
+    setActionBusy(true);
+    // Admins use the admin endpoint (audited separately); owners use the regular one.
+    const r = isAdmin && !isOwner
+      ? await adminApi.deleteCommunity(Number(id))
+      : await communityApi.delete(Number(id));
+    setActionBusy(false);
+    setConfirmAction(undefined);
+    if (r.success) {
+      toast.push("Community deleted", "success");
+      navigate(isAdmin ? "/admin/communities" : "/my-communities");
+      return;
+    }
+    toast.push(r.message || "Could not delete community", "error");
   };
 
   const displayedPosts = useMemo(() => {
-    if (!selectedTagId) return posts;
+    if (selectedTagId === undefined) return posts;
     const selectedTag = tags.find((tag) => tag.id === selectedTagId);
     return posts.filter((post) => {
       if (post.tagIds?.includes(selectedTagId)) return true;
@@ -135,32 +192,56 @@ export default function CommunityFeedPage() {
           </div>
 
           <div className="bg-pn-white border border-pn-border rounded-2xl p-7 mb-5 shadow-[0_8px_24px_rgba(53,88,114,0.06)]">
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex gap-4">
-                <div className="w-14 h-14 rounded-[14px] bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[1.5rem] font-bold text-white shrink-0">
-                  {community?.name?.charAt(0)?.toUpperCase() ?? "C"}
-                </div>
-                <div>
+            <div className="flex justify-between items-start gap-4 max-sm:flex-col">
+              <div className="flex gap-4 min-w-0">
+                <CommunityAvatar
+                  name={community?.name}
+                  avatarUrl={community?.avatarPicture}
+                  size="md"
+                />
+                <div className="min-w-0">
                   <div className="font-['Cormorant_Garamond',serif] text-[1.6rem] font-bold text-pn-navy mb-1">{community?.name ?? "Community"}</div>
                   <p className="text-[0.875rem] text-pn-muted leading-[1.6]">{community?.description || "No description provided."}</p>
                 </div>
               </div>
-              <div className="flex flex-row gap-2 items-center shrink-0">
+              <div className="flex flex-row gap-2 items-center shrink-0 flex-wrap justify-end">
                 {isMember ? (
                   <>
                     <Link to={`/community/${id}/members`}
                       className="px-[18px] py-[9px] bg-transparent text-pn-steel font-semibold text-[0.85rem] rounded-lg border border-pn-border hover:border-pn-sky hover:bg-[rgba(122,170,206,0.06)] transition-colors cursor-pointer">
                       Members
                     </Link>
-                    <button onClick={handleLeave}
+                    <button onClick={() => setConfirmAction("leave")}
                       className="px-3 py-[7px] bg-transparent text-pn-muted font-medium text-[0.8rem] rounded-lg hover:bg-[rgba(155,58,58,0.08)] hover:text-pn-red transition-colors cursor-pointer">
                       Leave
                     </button>
                   </>
+                ) : isPending ? (
+                  <span
+                    className="inline-flex items-center gap-[8px] px-[18px] py-[9px] bg-[rgba(210,160,60,0.1)] border border-[rgba(210,160,60,0.28)] text-[#9a6b1e] font-semibold text-[0.85rem] rounded-xl"
+                    aria-label="Your join request is pending review"
+                  >
+                    <span className="relative inline-flex w-[7px] h-[7px]">
+                      <span className="absolute inset-0 rounded-full bg-[#c0853c] animate-pulse-dot" />
+                      <span className="absolute inset-0 rounded-full bg-[#c0853c] opacity-40 blur-[2px]" />
+                    </span>
+                    Pending
+                  </span>
                 ) : (
                   <button onClick={handleJoin}
                     className="px-[22px] py-[10px] bg-pn-steel text-white font-semibold text-[0.875rem] rounded-xl shadow-[0_6px_16px_rgba(53,88,114,0.2)] hover:bg-[#2a4760] cursor-pointer">
                     {community?.type === "public" ? "+ Join" : "+ Request to Join"}
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => setConfirmAction("delete")}
+                    aria-label="Delete community"
+                    title={isOwner ? "Delete community (owner)" : "Delete community (admin)"}
+                    className="inline-flex items-center gap-[6px] px-[12px] py-[8px] bg-transparent text-pn-red font-semibold text-[0.8rem] rounded-lg border border-[rgba(155,58,58,0.25)] hover:bg-[rgba(155,58,58,0.08)] transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-[14px] h-[14px]" />
+                    Delete
                   </button>
                 )}
               </div>
@@ -210,9 +291,9 @@ export default function CommunityFeedPage() {
               <div className="flex items-center gap-[8px] flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setSelectedTagId(null)}
+                  onClick={() => setSelectedTagId(undefined)}
                   className={`text-[0.76rem] font-semibold px-[11px] py-[5px] rounded-full border transition-all ${
-                    selectedTagId === null
+                    selectedTagId === undefined
                       ? "bg-pn-steel text-white border-pn-steel"
                       : "bg-pn-bg text-pn-muted border-pn-border hover:text-pn-steel hover:border-pn-sky"
                   }`}
@@ -225,7 +306,7 @@ export default function CommunityFeedPage() {
                     <button
                       key={tag.id}
                       type="button"
-                      onClick={() => setSelectedTagId(active ? null : tag.id)}
+                      onClick={() => setSelectedTagId(active ? undefined : tag.id)}
                       className={`text-[0.76rem] font-semibold px-[11px] py-[5px] rounded-full border transition-all ${
                         active
                           ? "bg-pn-steel text-white border-pn-steel"
@@ -381,6 +462,87 @@ export default function CommunityFeedPage() {
           </div>
         </aside>
       </main>
+
+      {confirmAction && (
+        <ConfirmDialog
+          variant={confirmAction === "delete" ? "danger" : "warning"}
+          title={confirmAction === "delete" ? "Delete community?" : "Leave community?"}
+          description={
+            confirmAction === "delete"
+              ? "This permanently removes the community along with its posts, comments, and members. This action cannot be undone."
+              : "You'll lose access to private posts. You can request to join again later."
+          }
+          confirmLabel={confirmAction === "delete" ? "Delete community" : "Leave"}
+          busy={actionBusy}
+          onCancel={() => (actionBusy ? undefined : setConfirmAction(undefined))}
+          onConfirm={confirmAction === "delete" ? handleDelete : handleLeave}
+        />
+      )}
+    </div>
+  );
+}
+
+type ConfirmDialogProps = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  variant: "danger" | "warning";
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+function ConfirmDialog({ title, description, confirmLabel, variant, busy, onCancel, onConfirm }: ConfirmDialogProps) {
+  const accent = variant === "danger"
+    ? "text-pn-red bg-[rgba(155,58,58,0.08)] border-[rgba(155,58,58,0.25)]"
+    : "text-[#9a6b1e] bg-[rgba(210,160,60,0.1)] border-[rgba(210,160,60,0.28)]";
+  const confirmCls = variant === "danger"
+    ? "bg-pn-red text-white hover:bg-[#8a3232]"
+    : "bg-pn-steel text-white hover:bg-[#2a4760]";
+
+  return (
+    <div
+      className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-[rgba(26,39,51,0.45)] backdrop-blur-[2px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-pn-white border border-pn-border rounded-2xl shadow-[0_24px_48px_rgba(26,39,51,0.25)] max-w-[420px] w-full p-6"
+        style={{ animation: "fadeUp 200ms ease-out" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl border ${accent} mb-3`}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <h2 id="confirm-dialog-title" className="font-['Cormorant_Garamond',serif] text-[1.4rem] font-bold text-pn-navy leading-tight mb-2">
+          {title}
+        </h2>
+        <p className="text-[0.88rem] leading-[1.6] text-pn-muted mb-6">{description}</p>
+        <div className="flex items-center gap-3 justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="px-5 py-[10px] bg-pn-white text-pn-steel font-semibold text-[0.86rem] rounded-xl border border-pn-border hover:border-pn-sky disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className={`inline-flex items-center gap-[6px] px-5 py-[10px] font-semibold text-[0.86rem] rounded-xl shadow-[0_6px_16px_rgba(26,39,51,0.18)] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer transition-colors ${confirmCls}`}
+          >
+            {busy ? "Working…" : confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

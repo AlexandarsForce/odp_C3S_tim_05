@@ -13,9 +13,7 @@ import { UserRole } from "../../Domain/enums/UserRole";
 import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";
 import { CommunityMemberStatus } from "../../Domain/enums/CommunityMemberStatus";
 import { parseMentions } from "../../Domain/utils/parseMentions";
-
-const SOFT_DELETED_CONTENT = "[deleted]";
-const MAX_DEPTH = 2;
+import { SOFT_DELETED_COMMENT_CONTENT, COMMENT_MAX_DEPTH } from "../../Domain/constants/Constants";
 
 export class CommentService implements ICommentService {
     constructor(
@@ -47,19 +45,22 @@ export class CommentService implements ICommentService {
     }
 
     async createComment(userId: number, comment: CreateCommentDto): Promise<CommentDto> {
-        if (comment.parentId !== 0) {
-            const parent = await this.commentRepository.findCommentById(comment.parentId as number);
+        // Walk up the parent chain to (a) validate the post matches at every level
+        // and (b) reject anything that would push the new comment past COMMENT_MAX_DEPTH.
+        // Depth = number of ancestors; root has depth 0.
+        if (comment.parentId && comment.parentId !== 0) {
+            let depth = 0;
+            let currentParentId: number | undefined = comment.parentId;
 
-            if (parent.id === 0) return new CommentDto();
+            while (currentParentId && currentParentId !== 0) {
+                const ancestor = await this.commentRepository.findCommentById(currentParentId);
+                if (ancestor.id === 0) return new CommentDto();
+                if (ancestor.postId !== comment.postId) return new CommentDto();
 
-            if (parent.postId !== comment.postId) return new CommentDto();
+                depth++;
+                if (depth > COMMENT_MAX_DEPTH) return new CommentDto();
 
-            if (parent.parentId !== 0) {
-                const grandparent = await this.commentRepository.findCommentById(parent.parentId as number);
-                if (grandparent.id === 0) return new CommentDto();
-                if (grandparent.parentId !== 0 && grandparent.parentId !== undefined) {
-                    return new CommentDto();
-                }
+                currentParentId = ancestor.parentId;
             }
         }
 
@@ -89,9 +90,8 @@ export class CommentService implements ICommentService {
     }
 
     async getUserComments(authorId: number, page: number, limit: number): Promise<PaginatedListDto<CommentDto>> {
-        const { comments, totalAmount } = await this.commentRepository.findCommentsByAuthorId(authorId);
-        const paged = comments.slice((page - 1) * limit, page * limit);
-        const dtos = await Promise.all(paged.map(c => this.toCommentDto(c)));
+        const { comments, totalAmount } = await this.commentRepository.findCommentsByAuthorId(authorId, page, limit);
+        const dtos = await Promise.all(comments.map(c => this.toCommentDto(c)));
         return new PaginatedListDto(dtos, totalAmount, page, limit);
     }
 
@@ -102,9 +102,14 @@ export class CommentService implements ICommentService {
     }
 
     async updateComment(userId: number, commentId: number, comment: UpdateCommentDto): Promise<boolean> {
-        const existingComment = await this.commentRepository.findCommentById(commentId);
+        // Pass includeDeleted=true so we can detect (and reject) edits on a comment
+        // that's already been soft-deleted, instead of silently treating it as "not found".
+        const existingComment = await this.commentRepository.findCommentById(commentId, true);
         if (existingComment.id === 0 || existingComment.authorId !== userId) return false;
-        if (existingComment.content === SOFT_DELETED_CONTENT) return false;
+        // Authoritative check is the `deleted` flag; content comparison kept as a
+        // secondary guard in case the flag is ever wrong while content matches.
+        if (existingComment.deleted) return false;
+        if (existingComment.content === SOFT_DELETED_COMMENT_CONTENT) return false;
         const updated = await this.commentRepository.updateComment(commentId, new Comment(
             commentId,
             existingComment.postId,
@@ -124,16 +129,9 @@ export class CommentService implements ICommentService {
         const comment = await this.commentRepository.findCommentById(commentId);
         if (comment.id === 0) return false;
 
-        const post = await this.postRepository.findPostById(comment.postId);
-        if (post.id === 0) return false;
-
-        const membership = await this.communityMemberRepository.findCommunityMemberById(post.communityId, actorId);
-        const isModerator = membership.userId !== 0
-            && membership.role === CommunityMemberRole.MODERATOR
-            && membership.status === CommunityMemberStatus.ACTIVE;
-
-        if (!isModerator) return false;
-
+        // Any authenticated user can flag a comment. Moderators and admins still see
+        // the reported flag in their dashboards; this just opens the funnel so regular
+        // users can surface bad content.
         const success = await this.commentRepository.reportComment(commentId);
         if (success) await this.auditService.log({ userId: actorId, action: "COMMENT_REPORTED", details: `commentId: ${commentId}` });
         return success;
@@ -141,13 +139,28 @@ export class CommentService implements ICommentService {
 
     async deleteComment(userId: number, commentId: number): Promise<boolean> {
         const existingComment = await this.commentRepository.findCommentById(commentId);
-        if (existingComment.id === 0 || existingComment.authorId !== userId) return false;
+        if (existingComment.id === 0) return false;
+
+        // Author can always delete their own comment.
+        const isAuthor = existingComment.authorId === userId;
+        if (isAuthor) {
+            const success = await this.commentRepository.softDeleteComment(commentId);
+            if (success) await this.auditService.log({ userId, action: "COMMENT_DELETED", details: "comments" });
+            return success;
+        }
+
+        // Moderators of the post's community can also delete.
+        const post = await this.postRepository.findPostById(existingComment.postId);
+        if (post.id === 0) return false;
+
+        const membership = await this.communityMemberRepository.findCommunityMemberById(post.communityId, userId);
+        const isModerator = membership.userId !== 0
+            && membership.role === CommunityMemberRole.MODERATOR
+            && membership.status === CommunityMemberStatus.ACTIVE;
+        if (!isModerator) return false;
 
         const success = await this.commentRepository.softDeleteComment(commentId);
-
-        if (success) {
-            await this.auditService.log({ userId, action: "COMMENT_DELETED", details: "comments" });
-        }
+        if (success) await this.auditService.log({ userId, action: "COMMENT_DELETED", details: "comments" });
         return success;
     }
 }

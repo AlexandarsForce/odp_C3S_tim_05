@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import { useAuth } from "../../hooks/auth/useAuthHook";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 import type { CommunityMemberDto, CommunityDto } from "../../types/community/CommunityTypes";
@@ -15,10 +16,10 @@ const GRADIENTS = [
 export default function CommunityMembersPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const [community, setCommunity] = useState<CommunityDto | null>(null);
+  const [community, setCommunity] = useState<CommunityDto | undefined>(undefined);
   const [allMembers, setAllMembers] = useState<CommunityMemberDto[]>([]);
   const [tab, setTab] = useState<"members" | "requests">("members");
-  const [respondingTo, setRespondingTo] = useState<number | null>(null);
+  const [respondingTo, setRespondingTo] = useState<number | undefined>(undefined);
 
   const fetchData = () => {
     if (!id) return;
@@ -35,7 +36,9 @@ export default function CommunityMembersPage() {
   const activeMembers = allMembers.filter((m) => m.status === "active");
   const pendingRequests = allMembers.filter((m) => m.status === "pending");
 
+  const isAdmin = user?.role === "admin";
   const isMod = activeMembers.some((m) => m.userId === user?.id && m.role === "moderator");
+  const canManageRoles = isAdmin || isMod;
 
   const handleRoleChange = async (userId: number, role: string) => {
     if (!id) return;
@@ -53,7 +56,7 @@ export default function CommunityMembersPage() {
     if (!id) return;
     setRespondingTo(userId);
     const res = await communityApi.updateMemberStatus(Number(id), userId, accepted);
-    setRespondingTo(null);
+    setRespondingTo(undefined);
     if (res.success) {
       if (accepted) {
         setAllMembers((prev) =>
@@ -76,12 +79,16 @@ export default function CommunityMembersPage() {
           <span className="text-pn-steel font-semibold">Members</span>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <h1 className="font-['Cormorant_Garamond',serif] text-[1.75rem] font-bold text-pn-navy leading-tight">
-            Members
-          </h1>
+        <div className="flex items-center gap-4 flex-wrap mb-6">
+          <CommunityAvatar name={community?.name} avatarUrl={community?.avatarPicture} size="md" />
+          <div className="min-w-0">
+            <h1 className="font-['Cormorant_Garamond',serif] text-[1.75rem] font-bold text-pn-navy leading-tight">
+              Members
+            </h1>
+            <p className="text-[0.82rem] text-pn-lm">{community?.name ?? "Community"}</p>
+          </div>
           {community?.type === "public" && (
-            <span className="text-[0.78rem] font-semibold text-pn-steel bg-[rgba(53,88,114,0.08)] border border-[rgba(53,88,114,0.15)] px-3 py-[3px] rounded-full">
+            <span className="text-[0.78rem] font-semibold text-pn-steel bg-[rgba(53,88,114,0.08)] border border-[rgba(53,88,114,0.15)] px-3 py-[3px] rounded-full ml-auto">
               {activeMembers.length}
             </span>
           )}
@@ -149,18 +156,26 @@ export default function CommunityMembersPage() {
                     ) : (
                       <span className="text-[0.72rem] font-medium text-pn-muted bg-pn-bg border border-pn-border px-[10px] py-[3px] rounded-full">member</span>
                     )}
-                    {isMod && m.userId !== user?.id && m.role !== "moderator" && !isOwner && (
+                    {canManageRoles && m.userId !== user?.id && !isOwner && (
                       <>
-                        <select value={m.role} onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                          className="bg-pn-bg border border-pn-border rounded-lg text-[0.8rem] px-[10px] py-[5px] text-pn-steel outline-none cursor-pointer">
-                          <option value="member">Member</option>
-                          <option value="moderator">Moderator</option>
-                        </select>
-                        <button onClick={() => handleRemove(m.userId)}
-                          aria-label="Remove member"
-                          className="w-[30px] h-[30px] rounded-lg bg-[rgba(180,60,60,0.08)] border border-[rgba(180,60,60,0.15)] text-[#9B3A3A] text-[0.85rem] flex items-center justify-center cursor-pointer hover:bg-[rgba(180,60,60,0.15)]">
-                          ✕
-                        </button>
+                        {m.role === "member" ? (
+                          <button onClick={() => handleRoleChange(m.userId, "moderator")}
+                            className="text-[0.75rem] font-semibold text-white bg-[#8A6820] px-[10px] py-[5px] rounded-lg hover:bg-[#6d5619] transition-colors cursor-pointer">
+                            + Promote
+                          </button>
+                        ) : isAdmin ? (
+                          <button onClick={() => handleRoleChange(m.userId, "member")}
+                            className="text-[0.75rem] font-semibold text-[#9B3A3A] bg-[rgba(180,60,60,0.08)] px-[10px] py-[5px] rounded-lg border border-[rgba(180,60,60,0.18)] hover:bg-[rgba(180,60,60,0.14)] transition-colors cursor-pointer">
+                            - Demote
+                          </button>
+                        ) : <></>}
+                        {isMod && (
+                          <button onClick={() => handleRemove(m.userId)}
+                            aria-label="Remove member"
+                            className="w-[30px] h-[30px] rounded-lg bg-[rgba(180,60,60,0.08)] border border-[rgba(180,60,60,0.15)] text-[#9B3A3A] text-[0.85rem] flex items-center justify-center cursor-pointer hover:bg-[rgba(180,60,60,0.15)]">
+                            ✕
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

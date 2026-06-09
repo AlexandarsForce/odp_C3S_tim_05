@@ -32,6 +32,7 @@ export class CommunityService implements ICommunityService {
       community.createdAt,
       community.updatedAt,
       community.memberCount,
+      community.viewerRole,
     );
   }
 
@@ -96,9 +97,16 @@ export class CommunityService implements ICommunityService {
     }
 
     async deleteCommunity(userId: number, communityId: number): Promise<boolean> {
-        const member = await this.communityMemberRepository.findCommunityMemberById(communityId, userId);
-        const isMod = member.userId !== 0 && member.role === CommunityMemberRole.MODERATOR && member.status === CommunityMemberStatus.ACTIVE;
-        if (!isMod) return false;
+        // Owner is allowed to delete unconditionally — even if their membership row
+        // was somehow lost or demoted. Otherwise the actor must be an active moderator.
+        const existing = await this.communityRepository.findCommunityById(communityId);
+        if (existing.id === 0) return false;
+        const isOwner = existing.ownerId === userId;
+        if (!isOwner) {
+            const member = await this.communityMemberRepository.findCommunityMemberById(communityId, userId);
+            const isMod = member.userId !== 0 && member.role === CommunityMemberRole.MODERATOR && member.status === CommunityMemberStatus.ACTIVE;
+            if (!isMod) return false;
+        }
         const success = await this.communityRepository.deleteCommunity(communityId);
         if (success) await this.auditService.log({ userId, action: "COMMUNITY_DELETED", details: "communities"});
         return success;

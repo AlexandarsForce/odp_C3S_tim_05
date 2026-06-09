@@ -23,7 +23,7 @@ const formatJoinDate = (date: string) =>
 
 export default function MyProfilePage() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<UserDto | null>(null);
+  const [profile, setProfile] = useState<UserDto | undefined>(undefined);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [comments, setComments] = useState<CommentDto[]>([]);
   const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0, comments: 0 });

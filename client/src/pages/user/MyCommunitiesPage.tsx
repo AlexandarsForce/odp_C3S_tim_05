@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppNavbar } from "../../components/layout/AppNavbar";
 import { Footer } from "../../components/layout/Footer";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
+import { useAuth } from "../../hooks/auth/useAuthHook";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
 const GRADIENTS = [
@@ -12,7 +14,40 @@ const GRADIENTS = [
   "from-pn-lm to-pn-steel",
 ];
 
+type RoleVariant = "admin" | "moderator" | "member";
+
+function RoleBadge({ variant }: { variant: RoleVariant }) {
+  const config = {
+    admin: {
+      label: "Admin",
+      cls: "text-white bg-pn-admin border-pn-admin/30",
+      dot: "bg-pn-pale",
+    },
+    moderator: {
+      label: "Moderator",
+      cls: "text-[#8A6820] bg-[rgba(195,150,40,0.12)] border-[rgba(195,150,40,0.28)]",
+      dot: "bg-[#c39628]",
+    },
+    member: {
+      label: "Member",
+      cls: "text-pn-steel bg-[rgba(53,88,114,0.08)] border-[rgba(53,88,114,0.18)]",
+      dot: "bg-pn-steel",
+    },
+  }[variant];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-[5px] text-[0.68rem] font-bold uppercase tracking-[0.1em] px-[8px] py-[3px] rounded-full border ${config.cls}`}
+      aria-label={`Your role: ${config.label}`}
+    >
+      <span className={`w-[5px] h-[5px] rounded-full ${config.dot}`} />
+      {config.label}
+    </span>
+  );
+}
+
 export default function MyCommunitiesPage() {
+  const { user } = useAuth();
   const [communities, setCommunities] = useState<CommunityDto[]>([]);
 
   useEffect(() => {
@@ -20,6 +55,13 @@ export default function MyCommunitiesPage() {
       if (r.success && r.data) setCommunities(r.data.items);
     });
   }, []);
+
+  // Site admins outrank any community-level role; the chip reflects that.
+  const roleFor = (c: CommunityDto): RoleVariant => {
+    if (user?.role === "admin") return "admin";
+    if (c.viewerRole === "moderator") return "moderator";
+    return "member";
+  };
 
   return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
@@ -45,16 +87,22 @@ export default function MyCommunitiesPage() {
           {communities.map((c, i) => (
             <div key={c.id}
               className="bg-pn-white border border-pn-border rounded-[28px] p-6 shadow-[0_10px_30px_rgba(53,88,114,0.05)] flex flex-col">
-              <div className="flex gap-[14px] mb-6">
-                <div className={`w-16 h-16 rounded-[16px] shrink-0 bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} flex items-center justify-center text-[1.4rem] font-bold text-white`}>
-                  {c.name?.charAt(0)?.toUpperCase() ?? "C"}
-                </div>
-                <div className="min-w-0 flex flex-col justify-center">
+              <div className="flex gap-[14px] mb-3">
+                <CommunityAvatar
+                  name={c.name}
+                  avatarUrl={c.avatarPicture}
+                  size="lg"
+                  gradient={GRADIENTS[i % GRADIENTS.length]}
+                />
+                <div className="min-w-0 flex flex-col justify-center flex-1">
                   <div className="font-['Cormorant_Garamond',serif] text-[1.25rem] font-semibold text-pn-navy truncate leading-tight">{c.name}</div>
                   <div className="text-[0.78rem] text-pn-lm font-medium mt-1">
                     {c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"}
                   </div>
                 </div>
+              </div>
+              <div className="mb-4">
+                <RoleBadge variant={roleFor(c)} />
               </div>
               <p className="text-[0.875rem] leading-[1.7] text-pn-muted mb-6 flex-1">{c.description || "No description."}</p>
               <div className="flex items-center justify-between pt-[14px] border-t border-pn-bg">

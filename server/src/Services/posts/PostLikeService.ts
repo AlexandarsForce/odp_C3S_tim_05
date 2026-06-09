@@ -25,7 +25,11 @@ export class PostLikeService implements IPostLikeService {
 
     async likePost(userId: number, postId: number, postLike: CreatePostLikeDto): Promise<LikePostResult> {
         const post = await this.postRepository.findPostById(postId);
-        if (post.id !== 0 && post.authorId === userId) {
+        if (post.id === 0) {
+            return { success: false, reason: 'ERROR' };
+        }
+
+        if (post.authorId === userId) {
             return { success: false, reason: 'OWN_POST' };
         }
 

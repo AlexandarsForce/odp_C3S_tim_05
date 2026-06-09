@@ -11,14 +11,14 @@ export default function TagsPage() {
   const [tags, setTags] = useState<TagDto[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
   const [newTag, setNewTag] = useState("");
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string>("");
 
   const fetchTags = async () => {
     setLoading(true);
-    setError(null);
+    setError("");
     const res = await tagApi.getAll();
     if (res.success && res.data) {
       setTags(res.data);
@@ -38,7 +38,7 @@ export default function TagsPage() {
       return;
     }
     setCreating(true);
-    setCreateError(null);
+    setCreateError("");
     const r = await tagApi.create(name);
     setCreating(false);
     if (r.success) {
@@ -116,7 +116,7 @@ export default function TagsPage() {
             <input
               type="text"
               value={newTag}
-              onChange={(e) => { setNewTag(e.target.value); if (createError) setCreateError(null); }}
+              onChange={(e) => { setNewTag(e.target.value); if (createError) setCreateError(""); }}
               onKeyDown={(e) => { if (e.key === "Enter" && !creating) handleCreate(); }}
               disabled={creating}
               className="flex-1 min-w-[180px] bg-pn-white border border-pn-border rounded-[10px] py-[10px] px-[14px] text-[0.875rem] text-pn-navy outline-none font-['DM_Sans',sans-serif] placeholder:text-pn-lm focus:border-[#0d9488] transition-colors disabled:opacity-60"

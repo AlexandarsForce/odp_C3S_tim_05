@@ -43,6 +43,12 @@ export class CommunityMemberService implements ICommunityMemberService {
         return member.userId !== 0 && member.status === CommunityMemberStatus.ACTIVE;
     }
 
+    async getViewerMembership(userId: number, communityId: number): Promise<{ role: string; status: string } | null> {
+        const member = await this.memberRepository.findCommunityMemberById(communityId, userId);
+        if (member.userId === 0) return null;
+        return { role: member.role, status: member.status };
+    }
+
     async canViewPrivateContent(userId: number, communityId: number, isAdmin: boolean): Promise<CommunityAccessResult> {
         // Admin bypasses every check
         if (isAdmin) return CommunityAccessResult.Allowed;

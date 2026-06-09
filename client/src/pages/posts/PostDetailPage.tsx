@@ -20,7 +20,7 @@ const timeAgo = (date: string) => {
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [post, setPost] = useState<PostDto | null>(null);
+  const [post, setPost] = useState<PostDto | undefined>(undefined);
   const [tags, setTags] = useState<TagDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

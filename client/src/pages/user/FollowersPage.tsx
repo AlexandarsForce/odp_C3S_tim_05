@@ -76,7 +76,7 @@ export default function FollowersPage() {
 
   const filtered = users.filter((u) => u.username.toLowerCase().includes(search.toLowerCase()));
 
-  if (!user) return null;
+  if (!user) return <></>;
 
   return (
     <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">

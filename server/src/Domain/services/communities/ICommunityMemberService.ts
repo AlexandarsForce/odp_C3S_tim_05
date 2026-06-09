@@ -14,6 +14,10 @@ export interface ICommunityMemberService {
     isModerator(userId: number, communityId: number): Promise<boolean>;
     isActiveMember(userId: number, communityId: number): Promise<boolean>;
 
+    // Returns the viewer's row in community_members (any status) or null if they have none.
+    // Used by the controller to decide whether to show "Join", "Pending" or "Leave" in the UI.
+    getViewerMembership(userId: number, communityId: number): Promise<{ role: string; status: string } | null>;
+
     // True if community is public OR (private AND user is active member) OR isAdmin
     canViewPrivateContent(userId: number, communityId: number, isAdmin: boolean): Promise<CommunityAccessResult>;
 

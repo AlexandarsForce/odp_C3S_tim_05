@@ -1,10 +1,11 @@
 import axios from "axios";
 import { BASE, authHeader, err } from "../common/apiHelper";
 import type { ApiResponse, PaginatedData, PaginatedResponse } from "../../types/common/ApiResponse";
-import type { CommunityDto, CommunityMemberDto, CreateCommunityDto } from "../../types/community/CommunityTypes";
+import type { CommunityDto, CommunityMemberDto, CreateCommunityDto, ViewerMembership } from "../../types/community/CommunityTypes";
 
 export type CommunityDetailsResponse = ApiResponse<CommunityDto> & {
   members?: PaginatedData<CommunityMemberDto>;
+  viewerMembership?: ViewerMembership;
 };
 
 export const communityApi = {
@@ -19,12 +20,19 @@ export const communityApi = {
   async getById(id: number, memberLimit = 5): Promise<CommunityDetailsResponse> {
     try {
       const r = await axios.get(`${BASE}communities/${id}?limit=${memberLimit}`, { headers: authHeader() });
-      const body = r.data as { success: boolean; message?: string; data?: CommunityDto; members?: PaginatedData<CommunityMemberDto> };
+      const body = r.data as {
+        success: boolean;
+        message?: string;
+        data?: CommunityDto;
+        members?: PaginatedData<CommunityMemberDto>;
+        viewerMembership?: ViewerMembership;
+      };
       return {
         success: body.success,
         message: body.message ?? "",
         data: body.data,
         members: body.members,
+        viewerMembership: body.viewerMembership,
       };
     } catch (e) {
       return {

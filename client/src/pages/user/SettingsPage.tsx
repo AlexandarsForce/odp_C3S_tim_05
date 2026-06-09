@@ -47,11 +47,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [toast, setToast] = useState<{ kind: "success" | "error"; msg: string } | null>(null);
+  const [toast, setToast] = useState<{ kind: "success" | "error"; msg: string } | undefined>(undefined);
   const [activeSection, setActiveSection] = useState<SectionId>("identity");
 
-  const sectionRefs = useRef<Record<SectionId, HTMLElement | null>>({
-    identity: null, avatar: null, bio: null, account: null, danger: null,
+  const sectionRefs = useRef<Record<SectionId, HTMLElement | undefined>>({
+    identity: undefined, avatar: undefined, bio: undefined, account: undefined, danger: undefined,
   });
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (toast) {
-      const t = setTimeout(() => setToast(null), 3500);
+      const t = setTimeout(() => setToast(undefined), 3500);
       return () => clearTimeout(t);
     }
   }, [toast]);

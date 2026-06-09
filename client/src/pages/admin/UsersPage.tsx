@@ -23,12 +23,12 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
   const limit = 20;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError("");
     const res = await adminApi.getAllUsers(page, limit);
     if (res.success && res.data) {
       setUsers(res.data.items);

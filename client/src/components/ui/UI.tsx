@@ -76,7 +76,7 @@ export function RoleBadge({ role }: { role: string }) {
 
 export function Pagination({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (p: number) => void }) {
   const totalPages = Math.ceil(total / pageSize);
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1) return <></>;
   return (
     <div className="flex items-center gap-3 mt-5 text-xs text-white/30">
       <button disabled={page <= 1} onClick={() => onChange(page - 1)}

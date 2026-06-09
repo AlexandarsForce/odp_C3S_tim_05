@@ -1,9 +1,9 @@
 export type AuditDto = {
   id: number;
-  userId: number | null;
+  userId: number;
   action: string;
-  details: string | null;
-  ipAddress: string | null;
+  details: string;
+  ipAddress: string;
   createdAt: string;
   username?: string;
 };
@@ -16,5 +16,5 @@ export type DbNodeDto = {
   lastCheck: string;
   successfulWrites: number;
   failedWrites: number;
-  repLagMs: number | null;
+  repLagMs: number;
 };

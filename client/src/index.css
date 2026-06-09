@@ -45,6 +45,26 @@
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
+@keyframes heart-pop {
+  0%   { transform: scale(1) rotate(0deg); }
+  25%  { transform: scale(1.45) rotate(-12deg); }
+  55%  { transform: scale(0.9) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes heart-burst-particle {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--bx), var(--by)) scale(1); }
+}
+@keyframes heart-ring {
+  0%   { opacity: 0.55; transform: scale(0.4); }
+  100% { opacity: 0;    transform: scale(2.1); }
+}
+@keyframes heart-rise {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.6); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-44px) scale(1.05); }
+}
 
 .animate-fade-up { animation: fadeUp 0.6s ease both; }
 .animate-fade-up-1 { animation: fadeUp 0.6s 0.1s ease both; }
@@ -61,3 +81,7 @@
   background-size: 200% 100%;
   animation: shimmer 1.6s ease infinite;
 }
+.animate-heart-pop      { animation: heart-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-heart-burst    { animation: heart-burst-particle 0.7s ease-out forwards; }
+.animate-heart-ring     { animation: heart-ring 0.7s ease-out forwards; }
+.animate-heart-rise     { animation: heart-rise 0.95s ease-out forwards; }
