@@ -79,7 +79,8 @@ export class CommentRepository implements ICommentRepository {
     const orderClause = sortBy === 'likesCount'
       ? `likes_count ${dir}`
       : `c.created_at ${dir}`;
-    const offset = (page - 1) * limit;
+    const safeLimit = safeInt(limit);
+    const safeOffset = safeInt((page - 1) * limit);
     try {
       type CountRow = RowDataPacket & { total: number };
       const [[countRow]] = await res.conn.execute<RowDataPacket[]>(
@@ -97,8 +98,8 @@ export class CommentRepository implements ICommentRepository {
          LEFT JOIN users u ON c.author_id = u.user_id
          WHERE c.post_id = ? AND c.deleted = 0
          ORDER BY ${orderClause}
-         LIMIT ? OFFSET ?`,
-        [postId, limit, offset]
+         LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+        [postId]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),
@@ -151,7 +152,8 @@ export class CommentRepository implements ICommentRepository {
     const orderClause = sortBy === 'likesCount'
       ? `likes_count ${dir}`
       : `c.created_at ${dir}`;
-    const offset = (page - 1) * limit;
+    const safeLimit = safeInt(limit);
+    const safeOffset = safeInt((page - 1) * limit);
     try {
       type CountRow = RowDataPacket & { total: number };
       const [[countRow]] = await res.conn.execute<RowDataPacket[]>(
@@ -169,8 +171,8 @@ export class CommentRepository implements ICommentRepository {
          LEFT JOIN users u ON c.author_id = u.user_id
          WHERE c.parent_id = ? AND c.deleted = 0
          ORDER BY ${orderClause}
-         LIMIT ? OFFSET ?`,
-        [parentId, limit, offset]
+         LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+        [parentId]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),

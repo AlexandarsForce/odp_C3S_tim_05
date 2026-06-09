@@ -103,11 +103,10 @@ export default function PostDetailPage() {
       } else {
         setNotFound(true);
       }
-      if (commRes.success && commRes.data) {
-        setComments(commRes.data.items);
-      } else if (postRes.comments?.items?.length) {
-        setComments(postRes.comments.items);
-      }
+      const commItems = commRes.success && commRes.data?.items?.length
+        ? commRes.data.items
+        : postRes.comments?.items ?? [];
+      setComments(commItems);
       setLoading(false);
     };
 
@@ -345,7 +344,6 @@ export default function PostDetailPage() {
               post={post}
               authorUsername={post.authorUsername}
               authorProfilePicture={(post as any).authorProfilePicture}
-              commentsCount={comments.length}
               communityName={post.communityName}
               communityId={post.communityId}
             />
@@ -849,26 +847,23 @@ type LeftTasteCardProps = {
   post: PostDto;
   authorUsername: string;
   authorProfilePicture?: string;
-  commentsCount: number;
   communityName: string;
   communityId: number;
 };
 
-function LeftTasteCard({ post, authorUsername, authorProfilePicture, commentsCount, communityName, communityId }: LeftTasteCardProps) {
-  const wordCount = (post.content?.split(/\s+/).filter(Boolean).length) ?? 0;
-  const readMins = Math.max(1, Math.round(wordCount / 220));
-  const initial = (authorUsername || "U").charAt(0).toUpperCase();
-
+function LeftTasteCard({ post, authorUsername, authorProfilePicture, communityName, communityId }: LeftTasteCardProps) {
   return (
     <div className="relative bg-pn-white border border-pn-border rounded-[20px] overflow-hidden shadow-[0_6px_22px_rgba(53,88,114,0.06)]">
-      {/* aurora top */}
-      <div className="relative h-[88px] bg-[linear-gradient(120deg,#1A2733_0%,#355872_45%,#7AAACE_100%)] overflow-hidden">
+      <div className="relative h-[72px] bg-[linear-gradient(120deg,#1A2733_0%,#355872_45%,#7AAACE_100%)] overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(500px_180px_at_80%_-10%,rgba(156,213,255,0.55),transparent_60%)]" />
         <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-white/85">
           <span className="w-[6px] h-[6px] rounded-full bg-pn-pale animate-pulse-dot" />
           Conversation
         </span>
-        <div className="absolute -bottom-7 left-5">
+      </div>
+
+      <div className="px-5 pt-4 pb-5">
+        <div className="flex items-center gap-3 mb-3">
           <CommentAvatar
             username={authorUsername}
             profilePicture={authorProfilePicture}
@@ -876,48 +871,27 @@ function LeftTasteCard({ post, authorUsername, authorProfilePicture, commentsCou
             size="md"
             linkable={false}
           />
-        </div>
-      </div>
-
-      <div className="pt-9 px-5 pb-5">
-        <div className="font-semibold text-pn-navy text-[0.95rem] leading-tight">@{authorUsername || `user${post.authorId}`}</div>
-        <div className="text-[0.7rem] text-pn-lm mt-[2px]">posted in <Link to={`/community/${communityId}`} className="text-pn-steel font-semibold hover:underline">{communityName || "community"}</Link></div>
-
-        <div className="h-px bg-pn-border my-4" />
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <Stat label="likes"    value={post.likesCount} />
-          <Stat label="replies"  value={commentsCount} />
-          <Stat label="min read" value={readMins} />
+          <div className="min-w-0">
+            <div className="font-semibold text-pn-navy text-[0.92rem] leading-tight truncate">@{authorUsername || `user${post.authorId}`}</div>
+            <div className="text-[0.7rem] text-pn-lm mt-[2px]">posted in <Link to={`/community/${communityId}`} className="text-pn-steel font-semibold hover:underline">{communityName || "community"}</Link></div>
+          </div>
         </div>
 
-        <div className="h-px bg-pn-border my-4" />
+        <div className="h-px bg-pn-border my-3" />
 
-        <p className="font-['Cormorant_Garamond',serif] italic text-[0.92rem] leading-[1.55] text-pn-navy/85">
+        <p className="font-['Cormorant_Garamond',serif] italic text-[0.88rem] leading-[1.5] text-pn-navy/85">
           "Every great conversation starts with someone leaning in."
         </p>
-        <div className="text-[0.66rem] uppercase tracking-wider text-pn-lm font-bold mt-2">— PulseNet</div>
+        <div className="text-[0.64rem] uppercase tracking-wider text-pn-lm font-bold mt-1.5">— PulseNet</div>
 
         <Link
           to={`/users/${post.authorId}`}
-          className="mt-5 inline-flex items-center gap-2 text-[0.8rem] font-semibold text-pn-steel hover:text-pn-navy transition-colors group"
+          className="mt-4 inline-flex items-center gap-2 text-[0.8rem] font-semibold text-pn-steel hover:text-pn-navy transition-colors group"
         >
-          <span className="relative inline-flex w-7 h-7 rounded-full bg-pn-bg border border-pn-border items-center justify-center text-pn-steel">
-            {initial}
-          </span>
           View author profile
           <span className="transition-transform group-hover:translate-x-0.5">→</span>
         </Link>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="font-['Cormorant_Garamond',serif] text-[1.4rem] font-bold text-pn-navy leading-none tabular-nums">{value}</div>
-      <div className="text-[0.6rem] uppercase tracking-wider text-pn-lm font-bold mt-[3px]">{label}</div>
     </div>
   );
 }
@@ -947,11 +921,11 @@ function CommunitiesPanel({
   };
 
   return (
-    <div className="bg-pn-white border border-pn-border rounded-[20px] p-5 shadow-[0_6px_22px_rgba(53,88,114,0.06)]">
+    <div className="bg-gradient-to-br from-[rgba(122,170,206,0.08)] via-pn-white to-pn-white border border-[rgba(122,170,206,0.18)] rounded-[20px] p-5 shadow-[0_6px_22px_rgba(53,88,114,0.06)]">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="font-['Cormorant_Garamond',serif] text-[1.15rem] font-semibold text-pn-navy leading-none">Communities</div>
-          <div className="text-[0.7rem] text-pn-lm mt-1">discover & join</div>
+          <div className="text-[0.95rem] font-bold text-pn-navy leading-none">Communities</div>
+          <div className="text-[0.7rem] text-pn-muted mt-1">discover & join</div>
         </div>
         <Link to="/my-communities" className="text-[0.72rem] font-semibold text-pn-steel hover:text-pn-navy">All →</Link>
       </div>

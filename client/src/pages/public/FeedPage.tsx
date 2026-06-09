@@ -64,21 +64,25 @@ export default function FeedPage() {
       <div className="max-w-[1120px] mx-auto px-6 py-8 pb-20 grid grid-cols-[220px_1fr_280px] gap-6 items-start max-lg:grid-cols-[1fr_280px] max-md:grid-cols-1">
         {/* LEFT SIDEBAR */}
         <aside className="sticky top-[86px] max-lg:hidden">
-          <div className="text-[0.68rem] font-bold tracking-wider uppercase text-pn-lm mb-2 px-2">My Communities</div>
-          {myCommunities.map((c, i) => (
-            <Link key={c.id} to={`/community/${c.id}`}
-              className="flex items-center gap-[10px] px-[10px] py-[9px] rounded-lg text-[0.875rem] font-medium text-pn-muted hover:bg-[rgba(53,88,114,0.07)] hover:text-pn-steel transition-colors">
-              <div className={`w-[26px] h-[26px] rounded-[7px] bg-gradient-to-br ${AVATARS[i % AVATARS.length]} flex items-center justify-center text-[0.75rem] font-bold text-white shrink-0`}>
-                {c.name?.charAt(0) ?? "C"}
-              </div>
-              {c.name}
-            </Link>
-          ))}
-          <div className="h-px bg-pn-border my-[10px] mx-2" />
-          <Link to="/explore"
-            className="flex items-center gap-[10px] px-[10px] py-[9px] rounded-lg text-[0.82rem] font-medium text-pn-steel hover:bg-[rgba(53,88,114,0.07)]">
-            Explore more
-          </Link>
+          <div className="bg-gradient-to-br from-[rgba(122,170,206,0.1)] via-[rgba(156,213,255,0.06)] to-[rgba(53,88,114,0.04)] backdrop-blur-sm border border-[rgba(122,170,206,0.2)] rounded-[16px] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[rgba(122,170,206,0.15)]">
+              <div className="text-[0.78rem] font-bold text-pn-navy tracking-wide">My Communities</div>
+            </div>
+            <div className="divide-y divide-[rgba(122,170,206,0.1)]">
+              {myCommunities.map((c, i) => (
+                <Link key={c.id} to={`/community/${c.id}`}
+                  className="flex items-center gap-[10px] px-4 py-[10px] text-[0.84rem] font-medium text-pn-muted hover:bg-[rgba(122,170,206,0.08)] hover:text-pn-steel transition-colors">
+                  <div className={`w-[26px] h-[26px] rounded-[7px] bg-gradient-to-br ${AVATARS[i % AVATARS.length]} flex items-center justify-center text-[0.72rem] font-bold text-white shrink-0`}>
+                    {c.name?.charAt(0) ?? "C"}
+                  </div>
+                  <span className="truncate">{c.name}</span>
+                </Link>
+              ))}
+              {myCommunities.length === 0 && (
+                <div className="px-4 py-3 text-[0.78rem] text-pn-lm italic">No communities yet.</div>
+              )}
+            </div>
+          </div>
           <Link to="/posts/new"
             className="flex items-center justify-center gap-[7px] bg-pn-steel text-white font-semibold text-[0.82rem] px-[14px] py-[10px] rounded-lg mt-3 shadow-[0_4px_12px_rgba(53,88,114,0.2)] hover:bg-[#2a4760]">
             + New Post
@@ -87,30 +91,25 @@ export default function FeedPage() {
 
         {/* FEED */}
         <div>
-          <div className="bg-pn-white border border-pn-border rounded-[20px] p-7 mb-5 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(122,170,206,0.1),transparent_50%)] pointer-events-none" />
-            <div className="inline-flex items-center gap-2 px-3 py-[5px] rounded-full bg-pn-white border border-pn-border text-[0.72rem] font-semibold text-pn-steel uppercase tracking-wide mb-[14px]">
-              <span className="w-[6px] h-[6px] rounded-full bg-pn-sky" />
-              Professional Feed
-            </div>
-            <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.6rem,3vw,2.2rem)] font-bold text-pn-navy mb-[10px] leading-[1.1]">
-              Your network,<br />all in one place.
-            </h1>
-            <div className="flex gap-5 flex-wrap pt-4 mt-4 border-t border-pn-surface">
-              {[
-                { val: displayedPosts.length, lbl: "Posts" },
-                { val: myCommunities.length, lbl: "Communities" },
-              ].map((s) => (
-                <div key={s.lbl} className="flex flex-col gap-[2px]">
-                  <strong className="text-[1rem] font-bold text-pn-steel">{s.val}</strong>
-                  <span className="text-[0.75rem] text-pn-lm">{s.lbl}</span>
-                </div>
-              ))}
+          <div className="bg-gradient-to-br from-[rgba(122,170,206,0.12)] via-[rgba(156,213,255,0.08)] to-[rgba(53,88,114,0.06)] backdrop-blur-sm border border-[rgba(122,170,206,0.25)] rounded-[20px] p-6 mb-5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(122,170,206,0.15),transparent_50%)] pointer-events-none" />
+            <div className="relative">
+              <h1 className="font-['Cormorant_Garamond',serif] text-[clamp(1.5rem,3vw,2rem)] font-bold text-pn-navy leading-[1.15]">
+                Your network, all in one place.
+              </h1>
+              <p className="text-[0.84rem] text-pn-muted mt-[6px] leading-[1.5] max-w-[480px]">
+                Your Feed keeps you connected to the communities and discussions that matter to you, helping you stay involved and informed.
+              </p>
+              <div className="flex items-center gap-4 mt-4">
+                <span className="text-[0.85rem] font-bold text-pn-navy">{displayedPosts.length} <span className="font-medium text-pn-muted">Posts</span></span>
+                <span className="w-1 h-1 rounded-full bg-pn-steel/40" />
+                <span className="text-[0.85rem] font-bold text-pn-navy">{myCommunities.length} <span className="font-medium text-pn-muted">Communities</span></span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between gap-3 mb-[14px] flex-wrap">
-            <div className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-pn-lm">
+            <div className="text-[0.75rem] font-bold uppercase tracking-[0.1em] text-pn-steel">
               {displayedPosts.length === 0 ? "No posts" : `${displayedPosts.length} ${displayedPosts.length === 1 ? "post" : "posts"}`}
             </div>
             <div
@@ -128,8 +127,8 @@ export default function FeedPage() {
                     onClick={() => setSortKey(opt.key)}
                     className={`text-[0.78rem] font-semibold px-[12px] py-[6px] rounded-[9px] transition-all ${
                       active
-                        ? "bg-pn-steel text-white shadow-[0_2px_6px_rgba(53,88,114,0.18)]"
-                        : "text-pn-muted hover:text-pn-steel hover:bg-[rgba(53,88,114,0.05)] cursor-pointer"
+                        ? "bg-pn-navy text-white shadow-[0_2px_6px_rgba(26,39,51,0.22)]"
+                        : "text-pn-muted border border-transparent hover:border-pn-border hover:text-pn-steel cursor-pointer"
                     }`}
                   >
                     {opt.label}
@@ -142,7 +141,7 @@ export default function FeedPage() {
           {displayedPosts.map((p, i) => (
             <Link key={p.id} to={`/posts/${p.id}`}
               className="bg-pn-white border border-pn-border rounded-[20px] mb-[14px] overflow-hidden hover:shadow-[0_8px_28px_rgba(53,88,114,0.08)] hover:border-[#D4E2ED] transition-all block">
-              <div className="flex items-center gap-3 px-5 pt-[18px] pb-[14px]">
+              <div className="flex items-center gap-3 px-5 pt-4 pb-3">
                 <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${AVATARS[i % AVATARS.length]} shrink-0 flex items-center justify-center text-[0.9rem] font-bold text-white`}>
                   {p.authorUsername?.charAt(0)?.toUpperCase() ?? "U"}
                 </div>
@@ -154,7 +153,7 @@ export default function FeedPage() {
                 </div>
                 <div className="text-[0.75rem] text-pn-lm">{timeAgo(p.createdAt)}</div>
               </div>
-              <div className="px-5 pb-[14px]">
+              <div className="px-5 pb-3">
                 <div className="font-['Cormorant_Garamond',serif] text-[1.2rem] font-semibold text-pn-navy mb-2 leading-[1.25]">{p.title}</div>
                 <p className="text-[0.875rem] leading-[1.72] text-pn-muted line-clamp-3">{p.content}</p>
               </div>
@@ -187,13 +186,18 @@ export default function FeedPage() {
         {/* RIGHT SIDEBAR */}
         <aside className="sticky top-[86px] flex flex-col gap-[14px] max-md:hidden">
           <div className="bg-pn-white border border-pn-border rounded-[20px] p-5">
-            <div className="font-['Cormorant_Garamond',serif] text-[1rem] font-semibold text-pn-navy mb-[14px]">Trending Today</div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-[7px] h-[7px] rounded-full bg-pn-sky animate-pulse-dot" />
+              <div className="text-[0.9rem] font-bold text-pn-navy tracking-[-0.01em]">Trending Today</div>
+            </div>
             {displayedPosts.slice(0, 3).map((p, i) => (
-              <div key={p.id} className="pb-[9px] mb-[9px] border-b border-pn-surface last:border-b-0 last:pb-0 last:mb-0">
-                <div className="text-[0.7rem] font-bold text-pn-lm mb-[2px]">#{i + 1}</div>
-                <div className="text-[0.83rem] font-medium text-pn-navy leading-[1.4]">{p.title}</div>
-                <div className="text-[0.72rem] text-pn-lm">{p.communityName ?? `Community #${p.communityId}`}{' · '}{p.likesCount} likes</div>
-              </div>
+              <Link key={p.id} to={`/posts/${p.id}`} className="flex gap-3 pb-[10px] mb-[10px] border-b border-pn-surface last:border-b-0 last:pb-0 last:mb-0 hover:bg-[rgba(53,88,114,0.03)] -mx-2 px-2 py-1 rounded-lg transition-colors">
+                <span className="text-[1.1rem] font-bold text-pn-sky/60 font-['Cormorant_Garamond',serif] leading-none mt-[2px]">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[0.84rem] font-semibold text-pn-navy leading-[1.35] line-clamp-2">{p.title}</div>
+                  <div className="text-[0.72rem] text-pn-muted mt-[3px]">{p.communityName ?? `Community #${p.communityId}`} · {p.likesCount} likes</div>
+                </div>
+              </Link>
             ))}
             {displayedPosts.length === 0 && (
               <div className="text-[0.78rem] text-pn-muted">No trending posts yet.</div>
