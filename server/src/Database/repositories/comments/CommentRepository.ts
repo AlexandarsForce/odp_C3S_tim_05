@@ -15,7 +15,7 @@ export class CommentRepository implements ICommentRepository {
       r.comment_id,
       r.post_id,
       r.author_id,
-      r.parent_id,
+      r.parent_id || 0,
       r.content,
       Boolean(r.deleted),
       r.created_at ? new Date(r.created_at) : new Date(),
@@ -30,7 +30,7 @@ export class CommentRepository implements ICommentRepository {
     if (!res) return new Comment();
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `INSERT INTO comments (post_id, author_id, parent_id, content, deleted) VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO comments (post_id, author_id, parent_id, content, deleted) VALUES (?, ?, NULLIF(?, 0), ?, ?)`,
         [comment.postId, comment.authorId, comment.parentId, comment.content, 0]
       );
       if (result.insertId === 0) return new Comment();

@@ -3,7 +3,7 @@ export type CommentDto = {
   postId: number;
   authorId: number;
   authorUsername?: string;
-  parentId: number | null;
+  parentId: number;
   content: string;
   deleted: boolean;
   createdAt: string;
