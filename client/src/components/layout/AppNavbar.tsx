@@ -1,5 +1,6 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuthHook";
+import { CommentAvatar } from "../comments/CommentAvatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -76,9 +77,12 @@ export function AppNavbar() {
               type="button"
               className="group inline-flex items-center gap-[9px] bg-pn-white border rounded-full pr-[12px] pl-[3px] py-[3px] border-pn-border hover:border-pn-sky transition-all duration-200 data-[state=open]:border-pn-sky data-[state=open]:shadow-[0_4px_14px_rgba(122,170,206,0.22)]"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[0.78rem] font-bold text-white shrink-0">
-                {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
-              </div>
+              <CommentAvatar
+                username={user?.username}
+                profilePicture={user?.profilePicture}
+                size="sm"
+                linkable={false}
+              />
               <span className="text-[0.82rem] font-semibold text-pn-navy truncate max-w-[140px]">{user?.username ?? "user"}</span>
               <svg
                 width="10"
@@ -96,9 +100,12 @@ export function AppNavbar() {
 
           <DropdownMenuContent className="p-0">
             <div className="flex items-center gap-[10px] px-3 pt-3 pb-[10px] border-b border-pn-border bg-[rgba(247,248,240,0.55)]">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pn-sky to-pn-steel flex items-center justify-center text-[0.78rem] font-bold text-white shrink-0">
-                {user?.username?.charAt(0)?.toUpperCase() ?? "U"}
-              </div>
+              <CommentAvatar
+                username={user?.username}
+                profilePicture={user?.profilePicture}
+                size="sm"
+                linkable={false}
+              />
               <div className="min-w-0 flex-1">
                 <div className="text-[0.82rem] font-semibold text-pn-navy truncate leading-tight">{user?.username ?? "user"}</div>
                 <div className="text-[0.68rem] text-pn-lm capitalize leading-tight mt-[2px]">{user?.role ?? "member"}</div>

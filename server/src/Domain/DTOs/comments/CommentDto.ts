@@ -13,5 +13,6 @@ export class CommentDto{
         public mentions: MentionDto[] = [],
         public reported: boolean = false,
         public likesCount: number = 0,
+        public authorProfilePicture: string = "",
     ) {}
 }

@@ -10,7 +10,7 @@ export class TagController {
 
     public constructor(private readonly tagService: ITagService) {
         this.router.get("/tags", this.getAllTags.bind(this));
-        this.router.post("/tags", authenticate, authorize(UserRole.ADMIN), this.createTag.bind(this));
+        this.router.post("/tags", authenticate, this.createTag.bind(this));
         this.router.delete("/tags/:id", authenticate, authorize(UserRole.ADMIN), this.deleteTag.bind(this));
     }
 

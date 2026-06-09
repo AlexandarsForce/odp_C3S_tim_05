@@ -34,7 +34,7 @@ const formatDate = (date: string) =>
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
@@ -127,6 +127,7 @@ export default function SettingsPage() {
       setSavedFlash(true);
       setToast({ kind: "success", msg: "Profile updated" });
       setTimeout(() => setSavedFlash(false), 1500);
+      refreshUser();
     } else {
       setToast({ kind: "error", msg: r.message || "Failed to save changes" });
     }

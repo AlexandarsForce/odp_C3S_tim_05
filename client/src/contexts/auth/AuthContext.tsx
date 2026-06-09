@@ -1,9 +1,10 @@
-import React, { createContext, useState, type ReactNode } from "react";
+import React, { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
 import type { AuthContextType } from "../../types/auth/AuthContext";
 import type { AuthUser } from "../../types/auth/AuthUser";
 import type { JwtTokenClaims } from "../../types/auth/JwtTokenClaims";
 import { authApi } from "../../api_services/auth/AuthAPIService";
+import { usersApi } from "../../api_services/users/UsersAPIService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const KEY = "authToken";
@@ -67,8 +68,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem(KEY);
   };
 
+  const refreshUser = useCallback(async () => {
+    if (!user) return;
+    const r = await usersApi.getById(user.id);
+    if (r.success && r.data) {
+      setUser((prev) => prev
+        ? { ...prev, username: r.data!.username, role: r.data!.role, profilePicture: r.data!.profilePicture ?? "" }
+        : prev
+      );
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user && user.profilePicture === undefined) refreshUser();
+  }, [user?.id, refreshUser]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user && !!token, isLoading}}>
+    <AuthContext.Provider value={{ user, token, login, logout, refreshUser, isAuthenticated: !!user && !!token, isLoading}}>
       {children}
     </AuthContext.Provider>
   );

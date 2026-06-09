@@ -153,7 +153,7 @@ export class PostRepository implements IPostRepository {
 
         const countSubqueries = `
             (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
-            (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comments_count
+            (SELECT COUNT(*) FROM comments cm WHERE cm.post_id = p.post_id AND cm.deleted = 0) AS comments_count
         `;
 
         try {
@@ -217,6 +217,7 @@ export class PostRepository implements IPostRepository {
         const feedWhere = `(
             p.community_id IN (SELECT community_id FROM community_members WHERE user_id = ? AND status = 'active')
             OR p.author_id IN (SELECT following_id FROM user_follows WHERE follower_id = ?)
+            OR p.community_id IN (SELECT community_id FROM communities WHERE type = 'public')
         ) AND p.deleted = 0`;
         const countSubqueries = `
             (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
@@ -258,11 +259,15 @@ export class PostRepository implements IPostRepository {
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts WHERE author_id = ? AND deleted = 0`, [authorId]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
             const [rows] = await res.conn.execute<RowDataPacket[]>(
-                `SELECT p.*, u.username AS author_username, c.name AS community_name
+                `SELECT p.*,
+                    (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.post_id = p.post_id AND cm.deleted = 0) AS comments_count,
+                    u.username AS author_username, c.name AS community_name
                  FROM posts p
                  LEFT JOIN users u ON p.author_id = u.user_id
                  LEFT JOIN communities c ON p.community_id = c.community_id
                  WHERE p.author_id = ? AND p.deleted = 0
+                 ORDER BY p.created_at DESC
                  LIMIT ${lim} OFFSET ${offset}`,
                 [authorId]
             );
@@ -359,7 +364,7 @@ export class PostRepository implements IPostRepository {
             type CountRow = RowDataPacket & { total: number | string };
             const countSubqueries = `
                 (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
-                (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) AS comments_count
+                (SELECT COUNT(*) FROM comments cm WHERE cm.post_id = p.post_id AND cm.deleted = 0) AS comments_count
             `;
             const [countRows] = await res.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM posts WHERE deleted = 0`);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);

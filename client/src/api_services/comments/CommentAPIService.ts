@@ -13,6 +13,8 @@ export type CommentDto = {
   createdAt: string;
   reported: boolean;
   likesCount: number;
+  authorProfilePicture?: string;
+  mentions?: { username: string; userId: number }[];
 };
 
 export type CreateCommentInput = {

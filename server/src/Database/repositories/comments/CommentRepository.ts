@@ -22,6 +22,7 @@ export class CommentRepository implements ICommentRepository {
       Boolean(r.reported),
       r.author_username ?? "",
       Number(r.likes_count ?? 0),
+      r.author_profile_picture ?? "",
     );
   }
 
@@ -87,6 +88,7 @@ export class CommentRepository implements ICommentRepository {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT c.*,
           u.username AS author_username,
+          u.profile_picture AS author_profile_picture,
           (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS likes_count
          FROM comments c
          LEFT JOIN users u ON c.author_id = u.user_id
@@ -146,6 +148,7 @@ export class CommentRepository implements ICommentRepository {
       const [rows] = await res.conn.execute<RowDataPacket[]>(
         `SELECT c.*,
           u.username AS author_username,
+          u.profile_picture AS author_profile_picture,
           (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS likes_count
          FROM comments c
          LEFT JOIN users u ON c.author_id = u.user_id

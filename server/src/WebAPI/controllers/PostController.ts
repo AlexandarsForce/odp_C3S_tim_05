@@ -107,7 +107,24 @@ export class PostController {
         const isAdmin = req.user!.role === UserRole.ADMIN;
         const access = await this.communityMemberService.canViewPrivateContent(req.user!.id, post.communityId, isAdmin);
         if (access === CommunityAccessResult.Forbidden) {
-            res.status(403).json({ success: false, message: "This post is in a private community — join it to see the content" });
+            // 403 here means the community is private and the user isn't a member.
+            // Return basic info so the client can render a "request to join" preview.
+            res.status(403).json({
+                success: false,
+                message: "This post is in a private community — join it to see the content",
+                restricted: true,
+                community: {
+                    id: post.communityId,
+                    name: post.communityName,
+                    type: "private",
+                },
+                post: {
+                    id: post.id,
+                    title: post.title,
+                    authorUsername: post.authorUsername,
+                    createdAt: post.createdAt,
+                },
+            });
             return;
         }
 

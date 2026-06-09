@@ -8,4 +8,5 @@ export type CommentDto = {
   deleted: boolean;
   createdAt: string;
   reported?: boolean;
+  authorProfilePicture?: string;
 };

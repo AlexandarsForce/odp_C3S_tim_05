@@ -16,7 +16,17 @@ type GetByCommunityOpts = {
   sortOrder?: PostSortOrder;
 };
 
-type PostDetailResponse = ApiResponse<PostDto> & { isLiked?: boolean };
+export type RestrictedPostInfo = {
+  community: { id: number; name: string; type: string };
+  post: { id: number; title: string; authorUsername: string; createdAt: string };
+};
+
+type PostDetailResponse = ApiResponse<PostDto> & {
+  isLiked?: boolean;
+  restricted?: boolean;
+  community?: RestrictedPostInfo["community"];
+  post?: RestrictedPostInfo["post"];
+};
 
 export const postApi = {
   async getByCommunity(communityId: number, opts: GetByCommunityOpts = {}) {
@@ -31,9 +41,16 @@ export const postApi = {
     return axios.get<PaginatedResponse<PostDto>>(`${BASE}posts/feed?page=${page}&limit=${limit}`, { headers: authHeader() })
       .then(r => r.data).catch(e => err<PaginatedData<PostDto>>(e, "Failed to load feed"));
   },
-  async getById(id: number) {
-    return axios.get<PostDetailResponse>(`${BASE}posts/${id}`, { headers: authHeader() })
-      .then(r => r.data).catch(e => err<PostDto>(e, "Failed to load post") as PostDetailResponse);
+  async getById(id: number): Promise<PostDetailResponse> {
+    try {
+      const r = await axios.get<PostDetailResponse>(`${BASE}posts/${id}`, { headers: authHeader() });
+      return r.data;
+    } catch (e) {
+      if (axios.isAxiosError(e) && e.response?.status === 403 && e.response.data?.restricted) {
+        return e.response.data as PostDetailResponse;
+      }
+      return err<PostDto>(e, "Failed to load post") as PostDetailResponse;
+    }
   },
   async create(payload: CreatePostInput) {
     return axios.post<ApiResponse<PostDto>>(`${BASE}posts`, payload, { headers: authHeader() })
