@@ -43,9 +43,9 @@ export class CommunityMemberService implements ICommunityMemberService {
         return member.userId !== 0 && member.status === CommunityMemberStatus.ACTIVE;
     }
 
-    async getViewerMembership(userId: number, communityId: number): Promise<{ role: string; status: string } | null> {
+    async getViewerMembership(userId: number, communityId: number): Promise<{ role: string; status: string }> {
         const member = await this.memberRepository.findCommunityMemberById(communityId, userId);
-        if (member.userId === 0) return null;
+        if (member.userId === 0) return { role: "", status: "" };
         return { role: member.role, status: member.status };
     }
 

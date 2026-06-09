@@ -8,7 +8,7 @@ export interface IAuthAPIService {
     email: string,
     password: string,
     bio: string,
-    profilePicture?: File,
+    profilePicture: File | undefined,
     role: string
   ): Promise<AuthResponse>;
   logout(token: string): Promise<void>;

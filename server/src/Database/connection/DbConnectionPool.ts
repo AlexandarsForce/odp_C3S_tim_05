@@ -75,7 +75,7 @@ export interface ClusterState {
 
 export class DbManager implements IHealthService {
   private readonly state: ClusterState;
-  private healthTimer: NodeJS.Timeout | null = null;
+  private healthTimer?: NodeJS.Timeout;
 
   private readonly audit: DbAuditIntegration;
   private readonly monitor: DbReplicationMonitor;

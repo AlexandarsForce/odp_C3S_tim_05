@@ -292,7 +292,7 @@ export default function SettingsPage() {
           {/* IDENTITY */}
           <section
             id="identity"
-            ref={(el) => { sectionRefs.current.identity = el; }}
+            ref={(el) => { sectionRefs.current.identity = el ?? undefined; }}
             className="scroll-mt-[86px] bg-pn-white border border-pn-border rounded-[22px] p-7 shadow-[0_6px_22px_rgba(53,88,114,0.06)] animate-fade-up"
           >
             <div className="flex items-center gap-2 mb-1">
@@ -311,7 +311,7 @@ export default function SettingsPage() {
           {/* AVATAR */}
           <section
             id="avatar"
-            ref={(el) => { sectionRefs.current.avatar = el; }}
+            ref={(el) => { sectionRefs.current.avatar = el ?? undefined; }}
             className="scroll-mt-[86px] bg-pn-white border border-pn-border rounded-[22px] p-7 shadow-[0_6px_22px_rgba(53,88,114,0.06)] animate-fade-up-1"
           >
             <div className="flex items-center gap-2 mb-1">
@@ -413,7 +413,7 @@ export default function SettingsPage() {
           {/* BIO */}
           <section
             id="bio"
-            ref={(el) => { sectionRefs.current.bio = el; }}
+            ref={(el) => { sectionRefs.current.bio = el ?? undefined; }}
             className="scroll-mt-[86px] bg-pn-white border border-pn-border rounded-[22px] p-7 shadow-[0_6px_22px_rgba(53,88,114,0.06)] animate-fade-up-2"
           >
             <div className="flex items-center gap-2 mb-1">
@@ -452,7 +452,7 @@ export default function SettingsPage() {
           {/* ACCOUNT */}
           <section
             id="account"
-            ref={(el) => { sectionRefs.current.account = el; }}
+            ref={(el) => { sectionRefs.current.account = el ?? undefined; }}
             className="scroll-mt-[86px] bg-pn-white border border-pn-border rounded-[22px] p-7 shadow-[0_6px_22px_rgba(53,88,114,0.06)] animate-fade-up-3"
           >
             <div className="flex items-center gap-2 mb-1">
@@ -479,7 +479,7 @@ export default function SettingsPage() {
           {/* DANGER */}
           <section
             id="danger"
-            ref={(el) => { sectionRefs.current.danger = el; }}
+            ref={(el) => { sectionRefs.current.danger = el ?? undefined; }}
             className="scroll-mt-[86px] bg-[rgba(155,58,58,0.04)] border border-[rgba(155,58,58,0.18)] rounded-[22px] p-7 animate-fade-up-4"
           >
             <div className="flex items-center gap-2 mb-1">

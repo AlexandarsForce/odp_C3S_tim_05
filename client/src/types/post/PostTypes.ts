@@ -2,6 +2,7 @@ export type PostDto = {
   id: number;
   authorId: number;
   authorUsername?: string;
+  authorProfilePicture?: string;
   communityId: number;
   communityName?: string;
   title: string;
