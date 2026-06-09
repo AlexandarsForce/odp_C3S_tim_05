@@ -19,7 +19,8 @@ export class ConsoleLoggerService implements ILoggerService {
   }
 
   error<E>(context: string, message: string, err?: E): void {
-    const detail = err instanceof Error ? ` — ${err.message}` : err ? ` — ${String(err)}` : "";
+    const errMessage = (err as { message?: unknown } | undefined)?.message;
+    const detail = typeof errMessage === "string" ? ` — ${errMessage}` : err ? ` — ${String(err)}` : "";
     console.error(`${GRAY}${ts()}${RESET} ${RED}[ERROR]${RESET} ${GRAY}[${context}]${RESET} ${message}${detail}`);
   }
 

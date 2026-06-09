@@ -1,10 +1,9 @@
 import { Request, Response, Router, NextFunction } from "express";
-import multer from "multer";
 import jwt from "jsonwebtoken";
 import { IAuthService } from "../../Domain/services/auth/IAuthService";
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
-import { upload, MAX_UPLOAD_BYTES } from "../../Middlewares/upload/UploadMiddleware";
+import { upload, MAX_UPLOAD_BYTES, FileRejection } from "../../Middlewares/upload/UploadMiddleware";
 import { ValidationResult } from "../../Domain/types/ValidationResult";
 import { RegisterResult } from "../../Domain/DTOs/auth/RegisterResult";
 import { validateLogin } from "../validators/auth/validateLogin";
@@ -15,12 +14,20 @@ const MAX_MB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
 function uploadSingle(field: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     upload.single(field)(req, res, (err) => {
+      // Non-image rejection is signalled via the request, not via a thrown exception.
+      const rejection = (req as Request & FileRejection).fileRejectionReason;
+      if (rejection) {
+        res.status(400).json({ success: false, field: "profilePicture", message: rejection });
+        return;
+      }
       if (!err) return next();
-      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+      const code = (err as { code?: string } | undefined)?.code;
+      if (code === "LIMIT_FILE_SIZE") {
         res.status(413).json({ success: false, field: "profilePicture", message: `Image must be ${MAX_MB} MB or less` });
         return;
       }
-      const msg = err instanceof Error ? err.message : "Upload failed";
+      const rawMsg = (err as { message?: unknown } | undefined)?.message;
+      const msg = typeof rawMsg === "string" ? rawMsg : "Upload failed";
       res.status(400).json({ success: false, field: "profilePicture", message: msg });
     });
   };

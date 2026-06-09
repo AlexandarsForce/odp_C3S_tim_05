@@ -36,7 +36,7 @@ export class UserService implements IUserService {
     if (existingUser.id === 0) return false;
     const updatedUser = new User(
       existingUser.id,
-      updateDto.username,
+      updateDto.username || existingUser.username,
       updateDto.fullname,
       updateDto.email,
       existingUser.passwordHash,

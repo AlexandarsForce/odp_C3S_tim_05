@@ -69,6 +69,14 @@ export class UserController {
 
   private async updateMe(req: Request, res: Response): Promise<void> {
     const { username, fullname, email, bio, profilePicture, role } = req.body as UpdateUserDto;
+    if (!username || username.trim().length < 3 || username.length > 40 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+      res.status(400).json({ success: false, message: "Username must be 3-40 alphanumeric characters" });
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ success: false, message: "Invalid email address" });
+      return;
+    }
     const ok = await this.userService.updateUser(req.user!.id, new UpdateUserDto(username, fullname, email, bio, profilePicture, role));
     res.status(ok ? 200 : 500).json({ success: ok, message: ok ? "User updated" : "Failed to update user" });
   }

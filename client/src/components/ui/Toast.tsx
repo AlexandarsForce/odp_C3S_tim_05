@@ -11,8 +11,8 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used inside <ToastProvider>");
-  return ctx;
+  // Must be used inside <ToastProvider>; ctx is guaranteed present there.
+  return ctx!;
 }
 
 const AUTO_DISMISS_MS = 3200;

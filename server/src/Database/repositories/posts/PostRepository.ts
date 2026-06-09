@@ -97,7 +97,16 @@ export class PostRepository implements IPostRepository {
             if (post.tagIds && post.tagIds.length > 0) {
                 await this.writePostTags(res.conn, result.insertId, post.tagIds);
             }
+            const [infoRows] = await res.conn.execute<RowDataPacket[]>(
+                `SELECT u.username AS author_username, c.name AS community_name
+                 FROM users u, communities c
+                 WHERE u.user_id = ? AND c.community_id = ?`,
+                [post.authorId, post.communityId]
+            );
+            const info = infoRows[0];
             const created = new Post(result.insertId, post.authorId, post.communityId, post.title, post.content, post.mediaAttachment);
+            created.authorUsername = info?.author_username ?? "";
+            created.communityName = info?.community_name ?? "";
             await this.attachTagIds(res.conn, [created]);
             return created;
         }
@@ -306,7 +315,14 @@ export class PostRepository implements IPostRepository {
             const [countRows] = await resReadPosts.conn.execute<RowDataPacket[]>(`SELECT COUNT(*) as total FROM post_tags WHERE tag_id = ?`, [tagId]);
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
             const placeholders = postIds.map(() => '?').join(',');
-            const sql = `SELECT * FROM posts WHERE post_id IN (${placeholders}) ORDER BY created_at DESC`;
+            const sql = `SELECT p.*,
+                    (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.post_id = p.post_id AND cm.deleted = 0) AS comments_count,
+                    u.username AS author_username, c.name AS community_name
+                 FROM posts p
+                 LEFT JOIN users u ON p.author_id = u.user_id
+                 LEFT JOIN communities c ON p.community_id = c.community_id
+                 WHERE p.post_id IN (${placeholders}) ORDER BY p.created_at DESC`;
             const [rows] = await resReadPosts.conn.execute<RowDataPacket[]>(sql, postIds);
             const posts = rows.map(r => this.mapPost(r));
             await this.attachTagIds(resReadPosts.conn, posts);
@@ -336,9 +352,15 @@ export class PostRepository implements IPostRepository {
             const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
             const [rows] = await res.conn.execute<RowDataPacket[]>(
-                `SELECT DISTINCT p.* FROM posts p
+                `SELECT DISTINCT p.*,
+                    (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likes_count,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.post_id = p.post_id AND cm.deleted = 0) AS comments_count,
+                    u.username AS author_username, c.name AS community_name
+                 FROM posts p
                  JOIN post_tags pt ON p.post_id = pt.post_id
                  JOIN tags t ON pt.tag_id = t.tag_id
+                 LEFT JOIN users u ON p.author_id = u.user_id
+                 LEFT JOIN communities c ON p.community_id = c.community_id
                  WHERE t.name = ?
                  ORDER BY p.created_at DESC
                  LIMIT ${lim} OFFSET ${offset}`,
