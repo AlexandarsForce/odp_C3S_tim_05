@@ -27,6 +27,8 @@ export default function CreatePostPage() {
   const [tagsLoading, setTagsLoading] = useState(true);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [tagSearch, setTagSearch] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [tagError, setTagError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
 
@@ -62,9 +64,29 @@ export default function CreatePostPage() {
     );
   };
 
-  const visibleTags = tagSearch.trim()
-    ? allTags.filter((t) => t.name.toLowerCase().includes(tagSearch.trim().toLowerCase()))
+  const trimmedSearch = tagSearch.trim();
+  const visibleTags = trimmedSearch
+    ? allTags.filter((t) => t.name.toLowerCase().includes(trimmedSearch.toLowerCase()))
     : allTags;
+  const canCreateTag =
+    trimmedSearch.length >= 2 &&
+    !allTags.some((t) => t.name.toLowerCase() === trimmedSearch.toLowerCase()) &&
+    selectedTagIds.length < TAG_LIMIT;
+
+  const handleCreateTag = async () => {
+    if (!canCreateTag || creatingTag) return;
+    setCreatingTag(true);
+    setTagError("");
+    const r = await tagApi.create(trimmedSearch);
+    setCreatingTag(false);
+    if (r.success && r.data) {
+      setAllTags((prev) => [...prev, r.data!]);
+      setSelectedTagIds((prev) => (prev.includes(r.data!.id) ? prev : [...prev, r.data!.id]));
+      setTagSearch("");
+    } else {
+      setTagError(r.message || "Failed to create tag");
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title || !content || !communityId) return;
@@ -200,22 +222,44 @@ export default function CreatePostPage() {
                 )}
               </div>
 
-              {allTags.length > 8 && (
+              <div className="flex gap-2 mb-3">
                 <input
                   type="text"
                   value={tagSearch}
-                  onChange={(e) => setTagSearch(e.target.value)}
-                  placeholder="Filter tags…"
-                  className="w-full bg-pn-white border border-pn-border rounded-lg px-3 py-[7px] text-[0.82rem] text-pn-navy outline-none placeholder:text-pn-lm focus:border-pn-sky transition-colors mb-3"
+                  onChange={(e) => { setTagSearch(e.target.value); setTagError(""); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canCreateTag) {
+                      e.preventDefault();
+                      handleCreateTag();
+                    }
+                  }}
+                  placeholder="Search tags or type a new one…"
+                  className="flex-1 bg-pn-white border border-pn-border rounded-lg px-3 py-[7px] text-[0.82rem] text-pn-navy outline-none placeholder:text-pn-lm focus:border-pn-sky transition-colors"
                 />
+                {canCreateTag && (
+                  <button
+                    type="button"
+                    onClick={handleCreateTag}
+                    disabled={creatingTag}
+                    className="inline-flex items-center gap-1.5 px-3 py-[7px] text-[0.78rem] font-semibold text-white bg-pn-sky hover:bg-pn-steel rounded-lg shadow-[0_2px_6px_rgba(122,170,206,0.3)] disabled:opacity-50 cursor-pointer transition-all whitespace-nowrap"
+                  >
+                    {creatingTag ? "Creating…" : `+ Create "${trimmedSearch}"`}
+                  </button>
+                )}
+              </div>
+
+              {tagError && (
+                <div className="text-[0.76rem] text-pn-red mb-2">{tagError}</div>
               )}
 
               {tagsLoading ? (
                 <div className="text-[0.78rem] text-pn-lm italic py-2">Loading tags…</div>
-              ) : allTags.length === 0 ? (
-                <div className="text-[0.78rem] text-pn-lm italic py-2">No tags available yet.</div>
+              ) : allTags.length === 0 && !trimmedSearch ? (
+                <div className="text-[0.78rem] text-pn-lm italic py-2">No tags yet — type above to create the first one.</div>
               ) : visibleTags.length === 0 ? (
-                <div className="text-[0.78rem] text-pn-lm italic py-2">No tags match "{tagSearch}".</div>
+                <div className="text-[0.78rem] text-pn-lm italic py-2">
+                  No tags match "{tagSearch}".{canCreateTag && " Press Enter or click the button to create it."}
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-[7px]">
                   {visibleTags.map((tag) => {

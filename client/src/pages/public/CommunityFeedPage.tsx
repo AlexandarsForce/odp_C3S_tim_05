@@ -58,9 +58,16 @@ export default function CommunityFeedPage() {
     ]);
     if (commRes.success && commRes.data) {
       setCommunity(commRes.data);
-      if (commRes.members) {
-        setMembers(commRes.members.items);
-        setTotalMembers(commRes.members.total);
+      const m = commRes.members as { items?: CommunityMemberDto[]; total?: number } | CommunityMemberDto[] | undefined;
+      if (Array.isArray(m)) {
+        setMembers(m);
+        setTotalMembers(m.length);
+      } else if (m && Array.isArray(m.items)) {
+        setMembers(m.items);
+        setTotalMembers(m.total ?? m.items.length);
+      } else {
+        setMembers([]);
+        setTotalMembers(0);
       }
     }
     if (postRes.success && postRes.data) setPosts(postRes.data.items);

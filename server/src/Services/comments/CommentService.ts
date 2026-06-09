@@ -42,6 +42,7 @@ export class CommentService implements ICommentService {
             mentions,
             reported: comment.reported,
             likesCount: comment.likesCount ?? 0,
+            authorProfilePicture: comment.authorProfilePicture ?? "",
         };
     }
 
@@ -72,6 +73,11 @@ export class CommentService implements ICommentService {
             new Date()
         ));
         if (newComment.id === 0) return new CommentDto();
+
+        const author = await this.userRepository.findById(userId);
+        newComment.authorUsername = author.username ?? "";
+        newComment.authorProfilePicture = author.profilePicture ?? "";
+
         await this.auditService.log({ userId, action: "COMMENT_CREATED", details: "comments" });
         return this.toCommentDto(newComment);
     }

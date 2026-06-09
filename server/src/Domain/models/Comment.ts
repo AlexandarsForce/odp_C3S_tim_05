@@ -10,5 +10,6 @@ export class Comment {
         public reported: boolean = false,
         public authorUsername: string = "",
         public likesCount: number = 0,
+        public authorProfilePicture: string = "",
     ) {}
 }

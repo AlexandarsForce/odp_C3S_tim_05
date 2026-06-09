@@ -87,7 +87,12 @@ export class CommunityController {
         const isAdmin = req.user!.role === UserRole.ADMIN;
         const isMember = isAdmin || await this.communityMemberService.isActiveMember(req.user!.id, id);
         if (!isMember) {
-            res.status(200).json({ success: true, data: community, members: [], message: "Join this community to see its members" });
+            res.status(200).json({
+                success: true,
+                data: community,
+                members: { items: [], total: 0, page: 1, limit: 0 },
+                message: "Join this community to see its members",
+            });
             return;
         }
 
