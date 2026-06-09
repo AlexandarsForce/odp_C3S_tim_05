@@ -9,12 +9,12 @@ import { usersApi } from "../../api_services/users/UsersAPIService";
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const KEY = "authToken";
 
-const decode = (token: string): JwtTokenClaims | null => {
+const decode = (token: string): JwtTokenClaims | undefined => {
   try {
     const d = jwtDecode<JwtTokenClaims>(token);
-    return d?.id ? d : null;
+    return d?.id ? d : undefined;
   } catch {
-    return null;
+    return undefined;
   }
 };
 
@@ -42,14 +42,14 @@ const getInitialAuth = () => {
 
   if (saved) localStorage.removeItem(KEY);
 
-  return { token: null, user: null };
+  return { token: "", user: undefined };
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const initial = getInitialAuth();
 
-  const [token, setToken] = useState<string | null>(initial.token);
-  const [user, setUser] = useState<AuthUser | null>(initial.user);
+  const [token, setToken] = useState<string>(initial.token);
+  const [user, setUser] = useState<AuthUser | undefined>(initial.user);
   const [isLoading] = useState(false);
 
   const login = (t: string) => {
@@ -63,8 +63,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     if (token) await authApi.logout(token);
-    setToken(null);
-    setUser(null);
+    setToken("");
+    setUser(undefined);
     localStorage.removeItem(KEY);
   };
 
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user?.id, refreshUser]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, refreshUser, isAuthenticated: !!user && !!token, isLoading}}>
+    <AuthContext.Provider value={{ user, token, login, logout, refreshUser, isAuthenticated: !!user && !!token, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

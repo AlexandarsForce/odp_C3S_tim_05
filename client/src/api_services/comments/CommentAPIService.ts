@@ -64,7 +64,7 @@ export const commentApi = {
   },
 
   async report(commentId: number) {
-    return axios.post<ApiResponse<void>>(`${BASE}comments/${commentId}/report`, {}, { headers: authHeader() })
+    return axios.patch<ApiResponse<void>>(`${BASE}comments/${commentId}/report`, {}, { headers: authHeader() })
       .then(r => r.data)
       .catch(e => err<void>(e, "Failed to report comment"));
   },

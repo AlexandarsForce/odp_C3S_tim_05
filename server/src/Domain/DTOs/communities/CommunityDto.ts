@@ -12,5 +12,7 @@ export class CommunityDto {
         public createdAt: Date = new Date(),
         public updatedAt: Date = new Date(),
         public memberCount: number = 0,
+        // Optional: filled in for /communities/mine so the UI can render a role chip.
+        public viewerRole: string = "",
     ) {}
 }

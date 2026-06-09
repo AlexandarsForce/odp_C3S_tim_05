@@ -3,6 +3,9 @@ import { ICommentRepository, CommentSortBy, SortOrder } from "../../../Domain/re
 import { Comment } from "../../../Domain/models/Comment";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
+import { SOFT_DELETED_COMMENT_CONTENT } from "../../../Domain/constants/Constants";
+
+const safeInt = (n: number): number => Math.max(0, Math.floor(n));
 
 export class CommentRepository implements ICommentRepository {
   public constructor(
@@ -52,20 +55,20 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentById(commentId: number): Promise<Comment> {
+  async findCommentById(commentId: number, includeDeleted: boolean = false): Promise<Comment> {
     const res = await this.db.getReadConnection();
     if (!res) return new Comment();
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments WHERE comment_id = ? AND deleted = 0`, 
-        [commentId]
-      );
+      const sql = includeDeleted
+        ? `SELECT * FROM comments WHERE comment_id = ?`
+        : `SELECT * FROM comments WHERE comment_id = ? AND deleted = 0`;
+      const [rows] = await res.conn.execute<RowDataPacket[]>(sql, [commentId]);
       return rows.length > 0 ? this.mapComment(rows[0]) : new Comment();
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentById failed", err);
       return new Comment();
-    } finally { 
-      res.conn.release(); 
+    } finally {
+      res.conn.release();
     }
   }
 
@@ -109,23 +112,35 @@ export class CommentRepository implements ICommentRepository {
     }
   }
 
-  async findCommentsByAuthorId(authorId: number): Promise<{ comments: Comment[], totalAmount: number }> {
+  async findCommentsByAuthorId(authorId: number, page: number = 1, limit: number = 20): Promise<{ comments: Comment[], totalAmount: number }> {
     const res = await this.db.getReadConnection();
     if (!res) return { comments: [], totalAmount: 0 };
+    const offset = safeInt((page - 1) * limit);
+    const lim = safeInt(limit);
     try {
-      const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments WHERE author_id = ? AND deleted = 0 ORDER BY created_at DESC`, 
+      type CountRow = RowDataPacket & { total: number | string };
+      const [countRows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT COUNT(*) as total FROM comments WHERE author_id = ? AND deleted = 0`,
         [authorId]
+      );
+      const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
+
+      const [rows] = await res.conn.execute<RowDataPacket[]>(
+        `SELECT * FROM comments
+         WHERE author_id = ? AND deleted = 0
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+        [authorId, lim, offset]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),
-        totalAmount: rows.length
+        totalAmount
       };
     } catch (err) {
       this.logger.error("CommentRepository", "findCommentsByAuthorId failed", err);
       return { comments: [], totalAmount: 0 };
-    } finally { 
-      res.conn.release(); 
+    } finally {
+      res.conn.release();
     }
   }
 
@@ -209,8 +224,8 @@ export class CommentRepository implements ICommentRepository {
     if (!res) return false;
     try {
       const [result] = await res.conn.execute<ResultSetHeader>(
-        `UPDATE comments SET deleted = 1, content = '[komentar obrisan]' WHERE comment_id = ?`,
-        [commentId]
+        `UPDATE comments SET deleted = 1, content = ? WHERE comment_id = ?`,
+        [SOFT_DELETED_COMMENT_CONTENT, commentId]
       );
       return result.affectedRows > 0;
     } catch (err) {

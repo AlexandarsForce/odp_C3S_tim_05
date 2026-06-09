@@ -25,6 +25,7 @@ export class CommunityRepository implements ICommunityRepository {
       r.created_at ? new Date(r.created_at) : new Date(),
       r.updated_at ? new Date(r.updated_at) : new Date(),
       Number(r.member_count ?? 0),
+      typeof r.viewer_role === "string" ? r.viewer_role : "",
     );
   }
 
@@ -157,7 +158,7 @@ export class CommunityRepository implements ICommunityRepository {
       const [countRows] = await res.conn.execute<RowDataPacket[]>(countSql, [memberId]);
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
-      const sql = `SELECT c.*, COALESCE(mc.member_count, 0) AS member_count
+      const sql = `SELECT c.*, COALESCE(mc.member_count, 0) AS member_count, cm.role AS viewer_role
                      FROM communities c
                      INNER JOIN community_members cm ON c.community_id = cm.community_id
                      LEFT JOIN (

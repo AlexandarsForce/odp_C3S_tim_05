@@ -83,14 +83,19 @@ export class CommunityController {
         const community = await this.communityService.getCommunityDetails(id);
         if (community.id === 0) { res.status(404).json({ success: false, message: "Community not found" }); return; }
 
+        // viewerMembership lets the client render the right CTA (Join / Pending / Leave)
+        // without a second request. Null = no record at all.
+        const viewerMembership = await this.communityMemberService.getViewerMembership(req.user!.id, id);
+
         // Member list is sensitive — only active members of the community (or admins) get it
         const isAdmin = req.user!.role === UserRole.ADMIN;
-        const isMember = isAdmin || await this.communityMemberService.isActiveMember(req.user!.id, id);
+        const isMember = isAdmin || (viewerMembership?.status === "active");
         if (!isMember) {
             res.status(200).json({
                 success: true,
                 data: community,
                 members: { items: [], total: 0, page: 1, limit: 0 },
+                viewerMembership,
                 message: "Join this community to see its members",
             });
             return;
@@ -99,7 +104,7 @@ export class CommunityController {
         const page = parseInt(String(req.query.page ?? "1"), 10);
         const limit = Math.min(parseInt(String(req.query.limit ?? "5"), 10), 20);
         const MemberList = await this.communityMemberService.getCommunityMembers(req.user!.id, id, page, limit);
-        res.status(200).json({ success: true, data: community, members: MemberList });
+        res.status(200).json({ success: true, data: community, members: MemberList, viewerMembership });
     }
 
     private async updateCommunity(req: Request, res: Response): Promise<void> {

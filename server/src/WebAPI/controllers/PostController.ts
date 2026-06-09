@@ -81,9 +81,11 @@ export class PostController {
     }
 
     private async createPost(req: Request, res: Response): Promise<void> {
-        const { authorId, communityId, title, content, mediaAttachment, tagIds } = req.body as CreatePostDto;
+        // authorId is intentionally NOT read from the body — author is always the
+        // authenticated user. communityId, title, content, media, tags come from body.
+        const { communityId, title, content, mediaAttachment, tagIds } = req.body as CreatePostDto;
         const safeTagIds = Array.isArray(tagIds) ? tagIds.filter((id) => Number.isInteger(id) && id > 0) : [];
-        const dto = new CreatePostDto(authorId, communityId, title, content, mediaAttachment, safeTagIds);
+        const dto = new CreatePostDto(communityId, title, content, mediaAttachment, safeTagIds);
         const validationResult = validateCreatePost(dto);
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });
@@ -128,17 +130,21 @@ export class PostController {
             return;
         }
 
-        const postLikes = await this.postLikeService.getPostLikes(req.user!.id, postId, 1, 1);
+        // Single source of truth for likesCount is `data.likesCount` (already on `post`).
+        // We no longer emit a duplicate top-level `likesCount` field, and we skip the
+        // redundant getPostLikes round-trip — the count is already computed in findPostById.
         const isLiked = await this.postLikeService.isLikedByUser(req.user!.id, postId);
         const comments = await this.commentService.getPostComments(postId, page, limit);
-        res.status(200).json({ success: true, data: post, isLiked, likesCount: postLikes.total, comments });
+        res.status(200).json({ success: true, data: post, isLiked, comments });
     }
 
     private async updatePost(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.id as string, 10);
-        const { authorId, communityId, title, content, mediaAttachment, tagIds } = req.body as UpdatePostDto;
+        // communityId is intentionally NOT in UpdatePostDto — moving a post between
+        // communities is not supported. Author can't be changed either.
+        const { title, content, mediaAttachment, tagIds } = req.body as UpdatePostDto;
         const safeTagIds = Array.isArray(tagIds) ? tagIds.filter((id) => Number.isInteger(id) && id > 0) : [];
-        const dto = new UpdatePostDto(authorId, communityId, title, content, mediaAttachment, safeTagIds);
+        const dto = new UpdatePostDto(title, content, mediaAttachment, safeTagIds);
         const validationResult = validateUpdatePost(dto);
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });

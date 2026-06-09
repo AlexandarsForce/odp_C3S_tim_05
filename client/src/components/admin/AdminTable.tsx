@@ -19,7 +19,7 @@ export function AdminTable({ columns, children }: { columns: string[]; children:
 
 export function AdminPagination({ page, total, limit, onChange }: { page: number; total: number; limit: number; onChange: (p: number) => void }) {
   const totalPages = Math.ceil(total / limit);
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1) return <></>;
   const range: (number | string)[] = [];
   for (let i = 1; i <= Math.min(totalPages, 5); i++) range.push(i);
   if (totalPages > 5) { range.push("…"); range.push(totalPages); }

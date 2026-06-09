@@ -34,15 +34,15 @@ export default function AdminCommunitiesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
 
-  const [toDelete, setToDelete] = useState<CommunityDto | null>(null);
+  const [toDelete, setToDelete] = useState<CommunityDto | undefined>(undefined);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   const load = async (p = page) => {
     setLoading(true);
-    setError(null);
+    setError("");
     const res = await adminApi.getAllCommunities(p, LIMIT);
     if (res.success && res.data) {
       setCommunities(res.data.items);
@@ -77,7 +77,7 @@ export default function AdminCommunitiesPage() {
 
   const closeDelete = () => {
     if (deleting) return;
-    setToDelete(null);
+    setToDelete(undefined);
     setConfirmText("");
   };
 
@@ -87,7 +87,7 @@ export default function AdminCommunitiesPage() {
     const res = await adminApi.deleteCommunity(toDelete.id);
     setDeleting(false);
     if (res.success) {
-      setToDelete(null);
+      setToDelete(undefined);
       setConfirmText("");
       await load(page);
     } else {

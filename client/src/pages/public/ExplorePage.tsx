@@ -4,6 +4,7 @@ import { communityApi } from "../../api_services/communities/CommunityAPIService
 import { useAuth } from "../../hooks/auth/useAuthHook";
 import { AppNavbar } from "../../components/layout/AppNavbar";
 import { Footer } from "../../components/layout/Footer";
+import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import type { CommunityDto } from "../../types/community/CommunityTypes";
 
 const GRADIENTS = [
@@ -85,9 +86,12 @@ export default function ExplorePage() {
             <div key={c.id}
               className="bg-pn-white border border-pn-border rounded-[28px] p-6 shadow-[0_10px_30px_rgba(53,88,114,0.05)] flex flex-col">
               <div className="flex gap-[14px] mb-6">
-                <div className={`w-16 h-16 rounded-[16px] shrink-0 bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]} flex items-center justify-center text-[1.4rem] font-bold text-white`}>
-                  {c.name?.charAt(0)?.toUpperCase() ?? "C"}
-                </div>
+                <CommunityAvatar
+                  name={c.name}
+                  avatarUrl={c.avatarPicture}
+                  size="lg"
+                  gradient={GRADIENTS[i % GRADIENTS.length]}
+                />
                 <div className="min-w-0 flex flex-col justify-center">
                   <div className="font-['Cormorant_Garamond',serif] text-[1.25rem] font-semibold text-pn-navy truncate leading-tight">{c.name}</div>
                   <div className="text-[0.78rem] text-pn-lm font-medium mt-1">

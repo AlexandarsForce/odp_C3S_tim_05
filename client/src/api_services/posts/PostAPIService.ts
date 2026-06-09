@@ -8,6 +8,7 @@ import type {
   PostSortBy,
   PostSortOrder,
 } from "../../types/post/PostTypes";
+import type { CommentDto } from "../comments/CommentAPIService";
 
 type GetByCommunityOpts = {
   page?: number;
@@ -23,6 +24,7 @@ export type RestrictedPostInfo = {
 
 type PostDetailResponse = ApiResponse<PostDto> & {
   isLiked?: boolean;
+  comments?: PaginatedData<CommentDto>;
   restricted?: boolean;
   community?: RestrictedPostInfo["community"];
   post?: RestrictedPostInfo["post"];

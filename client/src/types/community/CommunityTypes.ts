@@ -9,6 +9,13 @@ export type CommunityDto = {
   createdAt: string;
   updatedAt: string;
   memberCount: number;
+  // Present only in /communities/mine responses (the viewer's community role).
+  viewerRole?: string;
+};
+
+export type ViewerMembership = {
+  role: string;
+  status: string; // 'active' | 'pending' | 'banned'
 };
 
 export type CommunityMemberDto = {

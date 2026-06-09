@@ -19,7 +19,7 @@ export default function PublicProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const [profileUser, setProfileUser] = useState<UserDto | null>(null);
+  const [profileUser, setProfileUser] = useState<UserDto | undefined>(undefined);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0 });
   const [isFollowing, setIsFollowing] = useState(false);

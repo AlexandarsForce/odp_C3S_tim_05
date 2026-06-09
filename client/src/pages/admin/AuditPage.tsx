@@ -45,12 +45,12 @@ export default function AuditPage() {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
   const limit = 15;
 
   const fetchLogs = () => {
     setLoading(true);
-    setError(null);
+    setError("");
     adminApi.getAuditLogs(page, limit).then((r) => {
       if (r.success && r.data) {
         setLogs(r.data.items);
@@ -101,7 +101,7 @@ export default function AuditPage() {
             Failed to load audit log
           </h3>
           <p className="text-[0.82rem] text-pn-muted leading-[1.65] max-w-[260px] mb-6">
-            {error}
+              {error}
           </p>
           <button
             onClick={fetchLogs}

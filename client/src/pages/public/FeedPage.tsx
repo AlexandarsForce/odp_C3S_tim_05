@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart, MessageCircle } from "lucide-react";
 import { postApi } from "../../api_services/posts/PostAPIService";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
@@ -35,6 +35,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [myCommunities, setMyCommunities] = useState<CommunityDto[]>([]);
   const [sortKey, setSortKey] = useState("newest");
+  const navigate = useNavigate();
 
   const fetchFeed = useCallback(async () => {
     const [feedRes, commRes] = await Promise.all([
@@ -148,7 +149,7 @@ export default function FeedPage() {
                 <div className="flex-1">
                   <div className="text-[0.9rem] font-semibold text-pn-navy">{p.authorUsername ?? `User #${p.authorId}`}</div>
                   <div className="text-[0.75rem] text-pn-lm">
-                    in <span className="text-pn-steel font-semibold">{p.communityName ?? `Community #${p.communityId}`}</span>
+                    in <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/community/${p.communityId}`); }} className="text-pn-steel font-semibold cursor-pointer hover:underline">{p.communityName ?? `Community #${p.communityId}`}</span>
                   </div>
                 </div>
                 <div className="text-[0.75rem] text-pn-lm">{timeAgo(p.createdAt)}</div>

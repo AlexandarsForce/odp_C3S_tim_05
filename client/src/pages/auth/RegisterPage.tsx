@@ -94,7 +94,7 @@ export default function RegisterPage() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [bio, setBio] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
-  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | undefined>(undefined);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -306,7 +306,7 @@ export default function RegisterPage() {
                   </label>
                   <div className="text-[0.75rem] text-pn-muted leading-[1.5]">
                     {profilePicture ? (
-                      <button type="button" onClick={() => { setProfilePicture(""); setProfilePictureFile(null); }} className="text-[#9B3A3A] font-semibold hover:underline cursor-pointer">Remove</button>
+                      <button type="button" onClick={() => { setProfilePicture(""); setProfilePictureFile(undefined); }} className="text-[#9B3A3A] font-semibold hover:underline cursor-pointer">Remove</button>
                     ) : (
                       <>Click the circle to upload.<br />PNG or JPG up to 20 MB.</>
                     )}

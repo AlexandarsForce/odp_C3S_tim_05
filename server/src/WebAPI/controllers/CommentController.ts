@@ -3,7 +3,6 @@ import { ICommentService } from "../../Domain/services/comments/ICommentService"
 import { ICommentLikeService } from "../../Domain/services/comments/ICommentLikeService";
 import { IPostService } from "../../Domain/services/posts/IPostService";
 import { authenticate } from "../../Middlewares/authentification/AuthMiddleware";
-import { authorize } from "../../Middlewares/authorization/AuthorizeMiddleware";
 import { UserRole } from "../../Domain/enums/UserRole";
 import { ICommunityMemberService } from "../../Domain/services/communities/ICommunityMemberService";
 import { CommunityAccessResult } from "../../Domain/enums/CommunityAccessResult";
@@ -121,15 +120,11 @@ this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this)
         const commentId = parseInt(req.params.id as string, 10);
         if (isNaN(commentId)) { res.status(400).json({ success: false, message: "Invalid comment ID" }); return; }
 
-        if (req.user!.role === UserRole.ADMIN) {
-            const success = await this.commentService.reportComment(req.user!.id, commentId);
-            res.status(success ? 200 : 404).json({ success, message: success ? "Comment reported" : "Comment not found" });
-            return;
-        }
-
+        // Any authenticated user can report; service returns false only when the
+        // comment doesn't exist.
         const success = await this.commentService.reportComment(req.user!.id, commentId);
         if (!success) {
-            res.status(403).json({ success: false, message: "Only moderators or admins can report comments" });
+            res.status(404).json({ success: false, message: "Comment not found" });
             return;
         }
         res.status(200).json({ success: true, message: "Comment reported" });
