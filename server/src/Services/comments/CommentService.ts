@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { CommentDto } from "../../Domain/DTOs/comments/CommentDto";
 import { CreateCommentDto } from "../../Domain/DTOs/comments/CreateCommentDto";
 import { UpdateCommentDto } from "../../Domain/DTOs/comments/UpdateCommentDto";

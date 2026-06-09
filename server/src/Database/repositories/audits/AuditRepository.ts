@@ -2,7 +2,7 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { IAuditRepository } from "../../../Domain/repositories/audits/IAuditRepository";
 import { Audit } from "../../../Domain/models/Audit";
 import { AuditDto } from "../../../Domain/DTOs/audit/AuditDto";
-import { PaginatedListDto } from "../../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../../Domain/DTOs/utils/PaginatedListDto";
 import { DbManager } from "../../connection/DbConnectionPool";
 import { ILoggerService } from "../../../Domain/services/logger/ILoggerService";
 

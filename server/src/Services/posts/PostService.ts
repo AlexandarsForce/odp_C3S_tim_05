@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { IPostService, PostQueryFilters } from "../../Domain/services/posts/IPostService";
 import { IPostRepository } from "../../Domain/repositories/posts/IPostRepository";
 import { IAuditService } from "../../Domain/services/audit/IAuditService";

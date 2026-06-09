@@ -1,6 +1,6 @@
 import { UpdateCommunityMemberRoleDto } from '../../DTOs/communities/UpdateCommunityMemberRoleDto';
 import { ResponseCommunityDto } from '../../DTOs/communities/ResponseCommunityDto';
-import { PaginatedListDto } from '../../DTOs/entity/PaginatedListDto';
+import { PaginatedListDto } from '../../DTOs/utils/PaginatedListDto';
 import { CommunityMemberDto } from '../../DTOs/communities/CommunityMemberDto';
 import { UpdateMemberRoleResult } from '../../enums/UpdateMemberRoleResult';
 import { RequestJoinResult } from '../../enums/RequestJoinResult';

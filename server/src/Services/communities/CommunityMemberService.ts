@@ -4,7 +4,7 @@ import { ICommunityRepository } from "../../Domain/repositories/communities/ICom
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { UpdateCommunityMemberRoleDto } from "../../Domain/DTOs/communities/UpdateCommunityMemberRoleDto";
 import { ResponseCommunityDto } from "../../Domain/DTOs/communities/ResponseCommunityDto";
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { CommunityMemberDto } from "../../Domain/DTOs/communities/CommunityMemberDto";
 import { CommunityMember } from "../../Domain/models/CommunityMember";
 import { CommunityMemberRole } from "../../Domain/enums/CommunityMemberRole";

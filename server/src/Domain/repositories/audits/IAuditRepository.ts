@@ -1,6 +1,6 @@
 import { Audit } from "../../models/Audit";
 import { AuditDto } from "../../DTOs/audit/AuditDto";
-import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../DTOs/utils/PaginatedListDto";
 
 export interface IAuditRepository {
   create(log: Audit): Promise<Audit>;

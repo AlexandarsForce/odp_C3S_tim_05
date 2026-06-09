@@ -5,7 +5,7 @@ import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { CommunityDto } from "../../Domain/DTOs/communities/CommunityDto";
 import { CreateCommunityDto } from "../../Domain/DTOs/communities/CreateCommunityDto";
 import { UpdateCommunityDto } from "../../Domain/DTOs/communities/UpdateCommunityDto";
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { CommunityType } from "../../Domain/enums/CommunityType";
 import { Community } from "../../Domain/models/Community";
 import { CommunityMember } from "../../Domain/models/CommunityMember";

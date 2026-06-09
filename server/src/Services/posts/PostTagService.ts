@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { PostTagDto } from "../../Domain/DTOs/posts/PostTagDto";
 import { CreatePostTagDto } from "../../Domain/DTOs/posts/CreatePostTagDto";
 import { IPostTagService } from "../../Domain/services/posts/IPostTagService";

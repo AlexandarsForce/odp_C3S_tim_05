@@ -1,7 +1,7 @@
 import { IAuditService } from "../../Domain/services/audit/IAuditService";
 import { IAuditRepository } from "../../Domain/repositories/audits/IAuditRepository";
 import { AuditDto } from "../../Domain/DTOs/audit/AuditDto";
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { Audit } from "../../Domain/models/Audit";
 
 export class AuditService implements IAuditService {

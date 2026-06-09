@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../DTOs/utils/PaginatedListDto";
 import { UserFollowerDto } from "../../DTOs/users/UserFollowerDto";
 
 export type FollowUserResult =

@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { IUserFollowerService, FollowUserResult } from "../../Domain/services/users/IUserFollowerService";
 import { UserFollowerDto } from "../../Domain/DTOs/users/UserFollowerDto";
 import { IUserFollowerRepository } from "../../Domain/repositories/users/IUserFollowerRepository";

@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../Domain/DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../Domain/DTOs/utils/PaginatedListDto";
 import { PostLikeDto } from "../../Domain/DTOs/posts/PostLikeDto";
 import { CreatePostLikeDto } from "../../Domain/DTOs/posts/CreatePostLikeDto";
 import { IPostLikeService, LikePostResult } from "../../Domain/services/posts/IPostLikeService";

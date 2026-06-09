@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../DTOs/utils/PaginatedListDto";
 import { PostLikeDto } from "../../DTOs/posts/PostLikeDto";
 import { CreatePostLikeDto } from "../../DTOs/posts/CreatePostLikeDto";
 

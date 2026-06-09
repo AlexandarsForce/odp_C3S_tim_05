@@ -1,4 +1,4 @@
-import { PaginatedListDto } from "../../DTOs/entity/PaginatedListDto";
+import { PaginatedListDto } from "../../DTOs/utils/PaginatedListDto";
 import { CommunityDto } from "../../DTOs/communities/CommunityDto";
 import { CreateCommunityDto } from "../../DTOs/communities/CreateCommunityDto";
 import { UpdateCommunityDto } from "../../DTOs/communities/UpdateCommunityDto";
