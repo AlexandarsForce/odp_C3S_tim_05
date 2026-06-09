@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AppNavbar } from "../../components/layout/AppNavbar";
+import { Footer } from "../../components/layout/Footer";
 import { CommunityAvatar } from "../../components/communities/CommunityAvatar";
 import { communityApi } from "../../api_services/communities/CommunityAPIService";
 
@@ -61,10 +62,10 @@ export default function CreateCommunityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
+    <div className="min-h-screen flex flex-col bg-pn-bg font-['DM_Sans',sans-serif] text-pn-navy">
       <AppNavbar />
 
-      <main className="max-w-[1080px] mx-auto px-6 py-10 pb-20">
+      <main className="max-w-[1080px] mx-auto px-6 py-10 pb-20 flex-1">
         <div className="mb-8">
           <div className="flex items-center gap-2 text-[0.78rem] font-semibold text-pn-muted uppercase tracking-wider mb-3">
             <span className="w-[6px] h-[6px] rounded-full bg-pn-sky animate-pulse-dot" />
@@ -206,12 +207,6 @@ export default function CreateCommunityPage() {
               >
                 {submitting ? "Creating..." : "Create Community"}
               </button>
-              <Link
-                to="/my-communities"
-                className="inline-flex items-center justify-center bg-pn-white text-pn-steel font-semibold text-[0.92rem] px-6 py-[12px] rounded-xl border border-pn-border hover:border-pn-sky transition-all"
-              >
-                Cancel
-              </Link>
               {!canSubmit && !submitting && (
                 <span className="text-[0.78rem] text-pn-lm leading-[1.5]">
                   {!nameValid && !descTrimmedLen
@@ -310,6 +305,8 @@ export default function CreateCommunityPage() {
           </aside>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
