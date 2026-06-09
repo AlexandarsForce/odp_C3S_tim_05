@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Heart, MessageCircle, ArrowLeft, Flag, Reply as ReplyIcon, Trash2 } from "lucide-react";
 import { postApi, type RestrictedPostInfo } from "../../api_services/posts/PostAPIService";
@@ -18,6 +19,10 @@ import type { PostDto } from "../../types/post/PostTypes";
 const DELETED_COMMENT_PLACEHOLDER = "[comment deleted]";
 
 type CommentSortKey = "newest" | "oldest" | "mostLiked";
+type BurstStyle = CSSProperties & {
+  "--bx": string;
+  "--by": string;
+};
 const COMMENT_SORTS: { key: CommentSortKey; label: string }[] = [
   { key: "newest", label: "Newest" },
   { key: "oldest", label: "Oldest" },
@@ -340,11 +345,11 @@ export default function PostDetailPage() {
             <Link to="/feed" className="inline-flex items-center gap-2 text-pn-steel font-semibold hover:text-pn-navy text-[0.85rem]">
               <ArrowLeft className="w-4 h-4" /> Back to feed
             </Link>
-            <LeftTasteCard
+              <LeftTasteCard
               post={post}
-              authorUsername={post.authorUsername}
-              authorProfilePicture={(post as any).authorProfilePicture}
-              communityName={post.communityName}
+              authorUsername={post.authorUsername ?? ""}
+              authorProfilePicture={post.authorProfilePicture}
+              communityName={post.communityName ?? ""}
               communityId={post.communityId}
             />
           </div>
@@ -443,10 +448,10 @@ export default function PostDetailPage() {
                         key={i}
                         className="absolute left-1/2 top-1/2 w-[6px] h-[6px] -ml-[3px] -mt-[3px] rounded-full bg-red-500 animate-heart-burst"
                         style={{
-                          ['--bx' as any]: `${p.x}px`,
-                          ['--by' as any]: `${p.y}px`,
+                          "--bx": `${p.x}px`,
+                          "--by": `${p.y}px`,
                           animationDelay: `${i * 18}ms`,
-                        }}
+                        } as BurstStyle}
                       />
                     ))}
                     <Heart className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 text-red-500 animate-heart-rise" fill="currentColor" />

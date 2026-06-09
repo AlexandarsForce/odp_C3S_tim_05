@@ -5,7 +5,7 @@ import { IAuditService } from "../../Domain/services/audit/IAuditService";
  * Holds optional IAuditService reference and exposes a safe log() wrapper.
  */
 export class DbAuditIntegration {
-  private auditService: IAuditService | null = null;
+  private auditService?: IAuditService;
 
   public setAuditService(service: IAuditService): void {
     this.auditService = service;

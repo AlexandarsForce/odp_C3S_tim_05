@@ -10,7 +10,7 @@ export const tagApi = {
   },
   async create(name: string) {
     return axios.post<ApiResponse<TagDto>>(`${BASE}tags`, { name }, { headers: authHeader() })
-      .then(r => r.data).catch(e => err(e, "Failed to create tag"));
+      .then(r => r.data).catch(e => err<TagDto>(e, "Failed to create tag"));
   },
   async delete(id: number) {
     return axios.delete<ApiResponse<void>>(`${BASE}tags/${id}`, { headers: authHeader() })

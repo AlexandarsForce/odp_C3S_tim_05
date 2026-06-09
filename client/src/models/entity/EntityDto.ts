@@ -4,3 +4,5 @@ export type EntityDto = {
   status: string;
   createdAt: string;
 };
+
+export type CreateEntityDto = Omit<EntityDto, "id" | "createdAt">;

@@ -80,8 +80,9 @@ export default function CreatePostPage() {
     const r = await tagApi.create(trimmedSearch);
     setCreatingTag(false);
     if (r.success && r.data) {
-      setAllTags((prev) => [...prev, r.data!]);
-      setSelectedTagIds((prev) => (prev.includes(r.data!.id) ? prev : [...prev, r.data!.id]));
+      const createdTag = r.data;
+      setAllTags((prev) => [...prev, createdTag]);
+      setSelectedTagIds((prev) => (prev.includes(createdTag.id) ? prev : [...prev, createdTag.id]));
       setTagSearch("");
     } else {
       setTagError(r.message || "Failed to create tag");
