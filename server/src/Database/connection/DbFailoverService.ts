@@ -34,7 +34,7 @@ export class DbFailoverService {
     }
 
     this.state.failoverInProgress = true;
-    let conn: PoolConnection | null = null;
+    let conn: PoolConnection = new PoolConnection();
 
     try {
       conn = await candidate.pool.getConnection();
@@ -82,7 +82,7 @@ export class DbFailoverService {
       return;
     }
 
-    let conn: PoolConnection | null = null;
+    let conn: PoolConnection = new PoolConnection();
 
     try {
       conn = await original.pool.getConnection();
@@ -137,7 +137,7 @@ export class DbFailoverService {
     }
 
     this.state.failoverInProgress = true;
-    let conn: PoolConnection | null = null;
+    let conn: PoolConnection = new PoolConnection();
 
     try {
       conn = await slave.pool.getConnection();

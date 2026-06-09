@@ -154,10 +154,10 @@ export class DbManager implements IHealthService {
 
   // ──────────────────────── CONNECTION API ────────────────────────
 
-  public async getWriteConnection(): Promise<{ conn: PoolConnection; nodeName: string } | null> {
+  public async getWriteConnection(): Promise<{ conn: PoolConnection; nodeName: string }> {
     if (this.state.master.node.status === NodeStatus.UNREACHABLE) {
       this.logger.error("DB", "Master is UNREACHABLE — write not possible");
-      return null;
+      return { conn: new PoolConnection(), nodeName: this.state.master.name };
     }
     try {
       const conn = await this.state.master.pool.getConnection();
@@ -167,11 +167,11 @@ export class DbManager implements IHealthService {
       this.state.master.node.status = NodeStatus.UNREACHABLE;
       this.state.master.node.failedWrites++;
       this.logger.error("DB", "Failed to connect to master", err);
-      return null;
+      return { conn: new PoolConnection(), nodeName: this.state.master.name };
     }
   }
 
-  public async getReadConnection(): Promise<{ conn: PoolConnection; nodeName: string } | null> {
+  public async getReadConnection(): Promise<{ conn: PoolConnection; nodeName: string }> {
     const n = this.state.slaves.length;
     for (let i = 0; i < n; i++) {
       const idx = (this.state.slaveRrIndex + i) % n;
@@ -191,7 +191,7 @@ export class DbManager implements IHealthService {
     this.logger.warn("DB", "All slaves unreachable — falling back to master for read");
     if (this.state.master.node.status === NodeStatus.UNREACHABLE) {
       this.logger.error("DB", "Master also unreachable — read not possible");
-      return null;
+      return { conn: new PoolConnection(), nodeName: this.state.master.name };
     }
     try {
       const conn = await this.state.master.pool.getConnection();
@@ -200,7 +200,7 @@ export class DbManager implements IHealthService {
     } catch (err) {
       this.state.master.node.status = NodeStatus.UNREACHABLE;
       this.logger.error("DB", "Failed to connect to master for fallback read", err);
-      return null;
+      return { conn: new PoolConnection(), nodeName: this.state.master.name };
     }
   }
 }

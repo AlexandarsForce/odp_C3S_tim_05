@@ -62,8 +62,8 @@ this.router.post("/comments/:id/like", authenticate, this.likeComment.bind(this)
     private async createComment(req: Request, res: Response): Promise<void> {
         const postId = parseInt(req.params.postId as string, 10);
         if (isNaN(postId)) { res.status(400).json({ success: false, message: "Invalid post ID" }); return; }
-        const { content, parentId } = req.body as { content: string; parentId?: number | null };
-        const dto = new CreateCommentDto(postId, req.user!.id, parentId ?? null, content);
+        const { content, parentId } = req.body as { content: string; parentId?: number};
+        const dto = new CreateCommentDto(postId, req.user!.id, parentId, content);
         const validationResult = validateCreateComment(dto);
         if (!validationResult.valid) {
             res.status(400).json({ success: false, message: validationResult.message });

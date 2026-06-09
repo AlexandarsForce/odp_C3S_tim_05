@@ -30,7 +30,7 @@ export class HealthController {
     }
 
     private async startFailover(req: Request, res: Response): Promise<void> {
-        const { idx } = req.body as { idx?: unknown };
+        const { idx } = req.body as { idx?: number };
         if (idx === undefined) { res.status(400).json({ success: false, message: "Missing idx in request body" }); return; }
         if (typeof idx !== "number" || (idx !== 0 && idx !== 1)) {
             res.status(400).json({ success: false, message: "Invalid idx value, must be 0 or 1" });

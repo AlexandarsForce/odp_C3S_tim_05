@@ -20,7 +20,7 @@ export class PostRepository implements IPostRepository {
             r.community_id,
             r.title,
             r.content,
-            r.media_attachment ?? null,
+            r.media_attachment,
             r.deleted,
             r.created_at ? new Date(r.created_at) : new Date(),
             Number(r.likes_count ?? 0),

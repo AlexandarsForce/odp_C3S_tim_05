@@ -34,7 +34,7 @@ export class CommentService implements ICommentService {
             id: comment.id,
             postId: comment.postId,
             authorId: comment.authorId,
-            authorUsername: comment.authorUsername || undefined,
+            authorUsername: comment.authorUsername,
             content: comment.content,
             parentId: comment.parentId,
             deleted: comment.deleted,
@@ -46,17 +46,17 @@ export class CommentService implements ICommentService {
     }
 
     async createComment(userId: number, comment: CreateCommentDto): Promise<CommentDto> {
-        if (comment.parentId !== null && comment.parentId !== undefined) {
-            const parent = await this.commentRepository.findCommentById(comment.parentId);
+        if (comment.parentId !== 0) {
+            const parent = await this.commentRepository.findCommentById(comment.parentId as number);
 
             if (parent.id === 0) return new CommentDto();
 
             if (parent.postId !== comment.postId) return new CommentDto();
 
-            if (parent.parentId !== null && parent.parentId !== undefined) {
-                const grandparent = await this.commentRepository.findCommentById(parent.parentId);
+            if (parent.parentId !== 0) {
+                const grandparent = await this.commentRepository.findCommentById(parent.parentId as number);
                 if (grandparent.id === 0) return new CommentDto();
-                if (grandparent.parentId !== null && grandparent.parentId !== undefined) {
+                if (grandparent.parentId !== 0 && grandparent.parentId !== undefined) {
                     return new CommentDto();
                 }
             }
@@ -66,7 +66,7 @@ export class CommentService implements ICommentService {
             0,
             comment.postId,
             userId,
-            comment.parentId ?? null,
+            comment.parentId,
             comment.content,
             false,
             new Date()

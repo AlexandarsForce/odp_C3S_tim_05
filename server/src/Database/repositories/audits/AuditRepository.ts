@@ -21,7 +21,7 @@ export class AuditRepository implements IAuditRepository {
       const [result] = await res.conn.execute<ResultSetHeader>(
         `INSERT INTO audits (user_id, action, details, ip_address)
          VALUES (?, ?, ?, ?)`,
-        [log.userId ?? null, log.action, log.details ?? null, log.ipAddress ?? null]
+        [log.userId, log.action, log.details, log.ipAddress]
       );
       if (result.insertId === 0) return new Audit();
       return new Audit(result.insertId, log.userId, log.action,
@@ -51,9 +51,9 @@ export class AuditRepository implements IAuditRepository {
       );
       const items = rows.map(
         (l) => new AuditDto(
-          l.id, l.user_id ?? null, l.username ?? null,
-          l.action, l.details ?? null,
-          l.ip_address ?? null, new Date(l.created_at as string)
+          l.id, l.user_id, l.username,
+          l.action, l.details,
+          l.ip_address, new Date(l.created_at as string)
         )
       );
       return new PaginatedListDto(items, cnt[0]?.total ?? 0, page, limit);

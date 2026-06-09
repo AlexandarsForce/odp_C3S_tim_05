@@ -8,17 +8,17 @@ export class AuditService implements IAuditService {
   public constructor(private readonly auditRepo: IAuditRepository) {}
 
   async log(params: {
-    userId?: number;
+    userId: number;
     action: string;
-    details?: string;
-    ipAddress?: string;
+    details: string;
+    ipAddress: string;
   }): Promise<void> {
     const entry = new Audit(
       0,
-      params.userId ?? null,
+      params.userId,
       params.action,
-      params.details ?? null,
-      params.ipAddress ?? null
+      params.details,
+      params.ipAddress
     );
     await this.auditRepo.create(entry);
   }

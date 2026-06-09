@@ -5,9 +5,10 @@ const MENTION_REGEX = /@([a-zA-Z0-9-]+)/g;
 
 export async function parseMentions(content: string, userRepo: IUserRepository): Promise<MentionDto[]> {
     const usernames = new Set<string>();
-    let match: RegExpExecArray | null;
-    while ((match = MENTION_REGEX.exec(content)) !== null) {
+    let match = MENTION_REGEX.exec(content);
+    while (match) {
         usernames.add(match[1].toLowerCase());
+        match = MENTION_REGEX.exec(content);
     }
     if (usernames.size === 0) return [];
 

@@ -6,7 +6,7 @@ import { ILoggerService } from "../../Domain/services/logger/ILoggerService";
 import { ClusterState, NodeInfo } from "./DbConnectionPool";
 
 type ReplicaStatusRow = {
-  Seconds_Behind_Master: number | null;
+  Seconds_Behind_Master: number;
 };
 
 /**
@@ -22,7 +22,7 @@ export class DbReplicationMonitor {
 
   public async checkNode(info: NodeInfo): Promise<void> {
     const start = Date.now();
-    let conn: PoolConnection | null = null;
+    let conn: PoolConnection = new PoolConnection();
     try {
       conn = await Promise.race([
         info.pool.getConnection(),
@@ -46,11 +46,11 @@ export class DbReplicationMonitor {
 
   public async monitorRepLag(info: NodeInfo): Promise<void> {
     if (info.node.status === NodeStatus.UNREACHABLE) {
-      info.node.repLagMs = null;
+      info.node.repLagMs = 0;
       return;
     }
 
-    let conn: PoolConnection | null = null;
+    let conn: PoolConnection = new PoolConnection();
 
     try {
       conn = await info.pool.getConnection();
@@ -61,10 +61,10 @@ export class DbReplicationMonitor {
 
       if (Array.isArray(rows) && rows.length > 0) {
         const lag = rows[0].Seconds_Behind_Master;
-        info.node.repLagMs = typeof lag === "number" ? lag * 1000 : null;
+        info.node.repLagMs = typeof lag === "number" ? lag * 1000 : 0;
       }
     } catch {
-      info.node.repLagMs = null;
+      info.node.repLagMs = 0;
     } finally {
       if (conn) conn.release();
     }
