@@ -127,11 +127,16 @@ export class CommentRepository implements ICommentRepository {
       const totalAmount = Number((countRows as CountRow[])[0]?.total ?? 0);
 
       const [rows] = await res.conn.execute<RowDataPacket[]>(
-        `SELECT * FROM comments
-         WHERE author_id = ? AND deleted = 0
-         ORDER BY created_at DESC
-         LIMIT ? OFFSET ?`,
-        [authorId, lim, offset]
+        `SELECT c.*,
+          u.username AS author_username,
+          u.profile_picture AS author_profile_picture,
+          (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS likes_count
+         FROM comments c
+         LEFT JOIN users u ON c.author_id = u.user_id
+         WHERE c.author_id = ? AND c.deleted = 0
+         ORDER BY c.created_at DESC
+         LIMIT ${lim} OFFSET ${offset}`,
+        [authorId]
       );
       return {
         comments: rows.map((row) => this.mapComment(row)),
